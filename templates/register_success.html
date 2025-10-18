@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration Successful</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/styles/register.css">
+    <style>
+        
+    </style>
+</head>
+<body>
+    <div class="success-container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="success-icon">✓</div>
+        <h2 class="success-title">Registration Successful!</h2>
+        <div class="success-message">
+            <p>Your doctor account has been created successfully.</p>
+            <p><strong>Important:</strong> Please check your email for a confirmation link to activate your account.</p>
+            <p>You won't be able to log in until you confirm your email address.</p>
+        </div>
+        <a href="{{ url_for('login') }}" class="login-btn">Go to Login</a>
+    </div>
+
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(msg => {
+                msg.style.transition = 'opacity 0.5s';
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 500);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}View Appointment{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Custom button group styling */
+    .btn-group-custom {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+    
+    .btn-group-custom .btn {
+        margin: 0;
+        border-radius: 8px !important;
+        font-weight: 600;
+        padding: 10px 20px;
+        transition: all 0.3s ease;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-group-custom .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .btn-group-custom .btn i {
+        font-size: 14px;
+    }
+    
+    /* Responsive design for smaller screens */
+    @media (max-width: 768px) {
+        .btn-group-custom {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn-group-custom .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas fa-calendar-check"></i> Appointment Details</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Patient Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Name:</strong></td>
+                                    <td>{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Date of Birth:</strong></td>
+                                    <td>{{ appointment.patient.date_of_birth.strftime('%B %d, %Y') if appointment.patient.date_of_birth else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Gender:</strong></td>
+                                    <td>{{ appointment.patient.gender.value if appointment.patient.gender else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Phone:</strong></td>
+                                    <td>{{ appointment.patient.phone_number or 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Email:</strong></td>
+                                    <td>{{ appointment.patient.email or 'N/A' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-primary">Appointment Information</h5>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Date:</strong></td>
+                                    <td>{{ appointment.date.strftime('%B %d, %Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Time:</strong></td>
+                                    <td>{{ appointment.date.strftime('%I:%M %p') }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Status:</strong></td>
+                                    <td>
+                                        {% if appointment.status.value == 'scheduled' %}
+                                            <span class="badge badge-warning">{{ appointment.status.value.title() }}</span>
+                                        {% elif appointment.status.value == 'completed' %}
+                                            <span class="badge badge-success">{{ appointment.status.value.title() }}</span>
+                                        {% elif appointment.status.value == 'cancelled' %}
+                                            <span class="badge badge-danger">{{ appointment.status.value.title() }}</span>
+                                        {% else %}
+                                            <span class="badge badge-secondary">{{ appointment.status.value.title() }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Notes:</strong></td>
+                                    <td>{{ appointment.notes or 'No notes' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Created:</strong></td>
+                                    <td>{{ appointment.created_at.strftime('%B %d, %Y at %I:%M %p') if appointment.created_at else 'N/A' }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if appointment.patient.medical_history %}
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h5 class="text-primary">Medical History</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Condition</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for history in appointment.patient.medical_history %}
+                                        <tr>
+                                            <td>{{ history.date.strftime('%m/%d/%Y') if history.date else 'N/A' }}</td>
+                                            <td>{{ history.condition }}</td>
+                                            <td>{{ history.notes or 'No notes' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if appointment.patient.allergies %}
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <h5 class="text-primary">Allergies</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Allergy</th>
+                                            <th>Severity</th>
+                                            <th>Notes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for allergy in appointment.patient.allergies %}
+                                        <tr>
+                                            <td>{{ allergy.allergen }}</td>
+                                            <td>
+                                                {% if allergy.severity %}
+                                                    {% if allergy.severity.value == 'mild' %}
+                                                        <span class="badge badge-info">{{ allergy.severity.value.title() }}</span>
+                                                    {% elif allergy.severity.value == 'moderate' %}
+                                                        <span class="badge badge-warning">{{ allergy.severity.value.title() }}</span>
+                                                    {% elif allergy.severity.value == 'severe' %}
+                                                        <span class="badge badge-danger">{{ allergy.severity.value.title() }}</span>
+                                                    {% else %}
+                                                        <span class="badge badge-secondary">{{ allergy.severity.value.title() }}</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ allergy.notes or 'No notes' }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="btn-group-custom">
+                                <a href="{{ url_for('edit_appointment', appointment_id=appointment.id) }}" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i> Edit Appointment
+                                </a>
+                                <a href="{{ url_for('view_appointments') }}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Back to Appointments
+                                </a>
+                                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                                    <i class="fas fa-home"></i> Back to Dashboard
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

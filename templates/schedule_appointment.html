@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Appointment - EHR System</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        
+        label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        input, select, textarea {
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        .datetime-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e9ecef;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .required {
+            color: #dc3545;
+        }
+        
+        .patient-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .patient-info h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .patient-info p {
+            color: #666;
+            margin: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .datetime-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Schedule Appointment</h1>
+            <p>Create a new appointment for a patient</p>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <form method="POST" id="scheduleForm">
+            <div class="form-group">
+                <label for="patient_id">Patient <span class="required">*</span></label>
+                <select id="patient_id" name="patient_id" required>
+                    <option value="">Select a patient</option>
+                    {% for patient in patients %}
+                        <option value="{{ patient.id }}" 
+                                data-dob="{{ patient.date_of_birth.strftime('%Y-%m-%d') if patient.date_of_birth }}"
+                                {{ 'selected' if (request.form.patient_id == patient.id|string) or (selected_patient_id == patient.id|string) }}>
+                            {{ patient.first_name }} {{ patient.last_name }}
+                            {% if patient.date_of_birth %}
+                                (DOB: {{ patient.date_of_birth.strftime('%Y-%m-%d') }})
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="patientInfo" class="patient-info" style="display: none;">
+                <h3>Selected Patient Information</h3>
+                <p id="patientDetails"></p>
+            </div>
+            
+            <div class="datetime-group">
+                <div class="form-group">
+                    <label for="appointment_date">Date <span class="required">*</span></label>
+                    <input type="date" id="appointment_date" name="appointment_date" required
+                           value="{{ request.form.appointment_date if request.form.appointment_date }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="appointment_time">Time <span class="required">*</span></label>
+                    <input type="time" id="appointment_time" name="appointment_time" required
+                           value="{{ request.form.appointment_time if request.form.appointment_time }}">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="appointment_type">Appointment Type <span class="required">*</span></label>
+                <select id="appointment_type" name="appointment_type" required>
+                    <option value="">Select appointment type</option>
+                    <option value="Consultation" {{ 'selected' if request.form.appointment_type == 'Consultation' }}>Consultation</option>
+                    <option value="Follow-up" {{ 'selected' if request.form.appointment_type == 'Follow-up' }}>Follow-up</option>
+                    <option value="Check-up" {{ 'selected' if request.form.appointment_type == 'Check-up' }}>Check-up</option>
+                    <option value="Emergency" {{ 'selected' if request.form.appointment_type == 'Emergency' }}>Emergency</option>
+                    <option value="Procedure" {{ 'selected' if request.form.appointment_type == 'Procedure' }}>Procedure</option>
+                    <option value="Surgery" {{ 'selected' if request.form.appointment_type == 'Surgery' }}>Surgery</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" 
+                          placeholder="Additional notes about the appointment">{{ request.form.notes if request.form.notes }}</textarea>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">Schedule Appointment</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        // Show patient information when selected
+        document.getElementById('patient_id').addEventListener('change', function() {
+            const select = this;
+            const patientInfo = document.getElementById('patientInfo');
+            const patientDetails = document.getElementById('patientDetails');
+            
+            if (select.value) {
+                const selectedOption = select.options[select.selectedIndex];
+                const patientName = selectedOption.text.split(' (DOB:')[0];
+                const dob = selectedOption.getAttribute('data-dob');
+                
+                patientDetails.innerHTML = `<strong>${patientName}</strong>` + 
+                                         (dob ? `<br>Date of Birth: ${dob}` : '');
+                patientInfo.style.display = 'block';
+            } else {
+                patientInfo.style.display = 'none';
+            }
+        });
+        
+        // Set minimum date to today
+        document.getElementById('appointment_date').min = new Date().toISOString().split('T')[0];
+        
+        document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+            const patientId = document.getElementById('patient_id').value;
+            const appointmentDate = document.getElementById('appointment_date').value;
+            const appointmentTime = document.getElementById('appointment_time').value;
+            const appointmentType = document.getElementById('appointment_type').value;
+            
+            if (!patientId || !appointmentDate || !appointmentTime || !appointmentType) {
+                e.preventDefault();
+                alert('Please fill in all required fields.');
+                return false;
+            }
+            
+            // Validate appointment is not in the past
+            const appointmentDateTime = new Date(appointmentDate + 'T' + appointmentTime);
+            const now = new Date();
+            
+            if (appointmentDateTime <= now) {
+                e.preventDefault();
+                alert('Appointment date and time must be in the future.');
+                return false;
+            }
+            
+            // Validate business hours (8 AM to 6 PM)
+            const hours = appointmentDateTime.getHours();
+            if (hours < 8 || hours >= 18) {
+                const confirm = window.confirm('This appointment is outside normal business hours (8 AM - 6 PM). Do you want to continue?');
+                if (!confirm) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        // Trigger patient info display if form is pre-filled
+        if (document.getElementById('patient_id').value) {
+            document.getElementById('patient_id').dispatchEvent(new Event('change'));
+        }
+    </script>
+</body>
+</html>

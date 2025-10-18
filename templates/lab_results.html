@@ -1,0 +1,797 @@
+{% extends "base.html" %}
+
+{% block title %}Lab Results - EHR System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .lab-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 30px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .page-header h1 {
+        color: #333;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+    
+    .page-header p {
+        color: #666;
+        font-size: 1.1rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-left: 5px solid;
+    }
+    
+    .stat-card.total {
+        border-left-color: #667eea;
+    }
+    
+    .stat-card.recent {
+        border-left-color: #28a745;
+    }
+    
+    .stat-card.types {
+        border-left-color: #ffc107;
+    }
+    
+    .stat-card h3 {
+        font-size: 2.2rem;
+        margin-bottom: 8px;
+        font-weight: 700;
+        color: #333;
+    }
+    
+    .stat-card p {
+        color: #666;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    .controls-section {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .controls-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .search-input, .filter-select {
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .search-input:focus, .filter-select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .btn-primary {
+        background-color: #667eea;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #5a6fd8;
+        transform: translateY(-2px);
+    }
+    
+    .results-table-container {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .results-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .results-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .results-table td {
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: middle;
+    }
+    
+    .results-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .results-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .patient-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .test-name {
+        font-weight: 500;
+        color: #667eea;
+    }
+    
+    .result-value {
+        font-family: 'Courier New', monospace;
+        background-color: #f8f9fa;
+        padding: 5px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+    
+    .date-badge {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .recent-badge {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+    
+    .no-data h3 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        color: #999;
+    }
+    
+    .no-data p {
+        font-size: 1rem;
+        margin-bottom: 25px;
+    }
+    
+    .actions-cell {
+        white-space: nowrap;
+        text-align: center;
+    }
+    
+    .btn-sm {
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        margin-right: 5px;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+    
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+    
+    /* Icon-based Button Groups */
+    .btn-group {
+        display: flex;
+        gap: 2px;
+        justify-content: center;
+    }
+    
+    .btn-outline-info {
+        color: #17a2b8;
+        border-color: #17a2b8;
+        background-color: transparent;
+    }
+    
+    .btn-outline-info:hover {
+        color: white;
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        transform: translateY(-1px);
+    }
+    
+    .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+        background-color: transparent;
+    }
+    
+    .btn-outline-secondary:hover {
+        color: white;
+        background-color: #6c757d;
+        border-color: #6c757d;
+        transform: translateY(-1px);
+    }
+    
+    .btn-outline-primary {
+        color: #007bff;
+        border-color: #007bff;
+        background-color: transparent;
+    }
+    
+    .btn-outline-primary:hover {
+        color: white;
+        background-color: #007bff;
+        border-color: #007bff;
+        transform: translateY(-1px);
+    }
+    
+    .btn-outline-warning {
+        color: #ffc107;
+        border-color: #ffc107;
+        background-color: transparent;
+    }
+    
+    .btn-outline-warning:hover {
+        color: #212529;
+        background-color: #ffc107;
+        border-color: #ffc107;
+        transform: translateY(-1px);
+    }
+    
+    .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+        background-color: transparent;
+    }
+    
+    .btn-outline-danger:hover {
+        color: white;
+        background-color: #dc3545;
+        border-color: #dc3545;
+        transform: translateY(-1px);
+    }
+    
+    .quick-actions-cell,
+    .management-actions-cell {
+        white-space: nowrap;
+        text-align: center;
+        vertical-align: middle;
+    }
+    
+    .btn-sm {
+        padding: 6px 8px;
+        font-size: 0.75rem;
+        border-radius: 4px;
+        border: 1px solid;
+        transition: all 0.2s ease;
+        min-width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-sm i {
+        font-size: 12px;
+    }
+    
+    .test-details {
+        margin-top: 4px;
+    }
+    
+    .time-badge {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+    
+    .time-text {
+        color: #666;
+        font-size: 0.8rem;
+    }
+    
+    @media (max-width: 768px) {
+        .controls-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .results-table {
+            font-size: 0.85rem;
+        }
+        
+        .results-table th,
+        .results-table td {
+            padding: 10px 8px;
+        }
+        
+        .page-header h1 {
+            font-size: 2rem;
+        }
+        
+        .btn-group {
+            gap: 1px;
+        }
+        
+        .btn-sm {
+            padding: 4px 6px;
+            min-width: 28px;
+            height: 28px;
+        }
+        
+        .btn-sm i {
+            font-size: 10px;
+        }
+        
+        .test-details {
+            margin-top: 2px;
+        }
+        
+        .time-badge {
+            font-size: 0.6rem;
+            padding: 1px 4px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="lab-container">
+    <div class="page-header">
+        <h1>Laboratory Results</h1>
+        <p>Comprehensive view of all patient lab results and test data</p>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <h3>{{ stats.total_results }}</h3>
+            <p>Total Lab Results</p>
+        </div>
+        <div class="stat-card recent">
+            <h3>{{ stats.recent_results }}</h3>
+            <p>Results This Week</p>
+        </div>
+        <div class="stat-card types">
+            <h3>{{ stats.test_types_count }}</h3>
+            <p>Different Test Types</p>
+        </div>
+    </div>
+    
+    <!-- Controls Section -->
+    <div class="controls-section">
+        <div class="controls-grid">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search by patient name or test name...">
+            <select id="testFilter" class="filter-select">
+                <option value="">All Test Types</option>
+                {% for test_type in stats.test_types %}
+                    <option value="{{ test_type }}">{{ test_type }}</option>
+                {% endfor %}
+            </select>
+            <select id="dateFilter" class="filter-select">
+                <option value="">All Dates</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="year">This Year</option>
+            </select>
+            <a href="{{ url_for('add_lab_result') }}" class="btn btn-primary">+ Add Lab Result</a>
+        </div>
+    </div>
+    
+    <!-- Results Table -->
+    <div class="results-table-container">
+        {% if lab_results %}
+            <table class="results-table" id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Test Details</th>
+                        <th>Result</th>
+                        <th>Date & Time</th>
+                        <th>Quick Actions</th>
+                        <th>Management</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lab_result, patient in lab_results %}
+                        <tr data-patient="{{ patient.first_name }} {{ patient.last_name }}" 
+                            data-test="{{ lab_result.test_name }}"
+                            data-date="{{ lab_result.date.strftime('%Y-%m-%d') }}">
+                            <td>
+                                <div class="patient-name">{{ patient.first_name }} {{ patient.last_name }}</div>
+                                {% if patient.date_of_birth %}
+                                    <small style="color: #666;">Age: {{ (2025 - patient.date_of_birth.year) }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="test-name">{{ lab_result.test_name }}</div>
+                                <div class="test-details">
+                                    {% set days_ago = (datetime.now().date() - lab_result.date.date()).days %}
+                                    {% if days_ago == 0 %}
+                                        <span class="time-badge recent-badge">Today</span>
+                                    {% elif days_ago == 1 %}
+                                        <span class="time-badge">Yesterday</span>
+                                    {% elif days_ago <= 7 %}
+                                        <span class="time-badge">{{ days_ago }} days ago</span>
+                                    {% else %}
+                                        <span class="time-badge">{{ days_ago }} days ago</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="result-value">{{ lab_result.result }}</div>
+                            </td>
+                            <td>
+                                <span class="date-badge {% if (lab_result.date.date() == (datetime.now().date())) %}recent-badge{% endif %}">
+                                    {{ lab_result.date.strftime('%Y-%m-%d') }}
+                                </span>
+                                <br>
+                                <small class="time-text">{{ lab_result.date.strftime('%H:%M') }}</small>
+                            </td>
+                            <td class="quick-actions-cell">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('view_patient', patient_id=patient.id) }}" 
+                                       class="btn btn-outline-info btn-sm" 
+                                       title="View Patient Details">
+                                        <i class="fas fa-user"></i>
+                                    </a>
+                                    <button type="button" 
+                                            class="btn btn-outline-primary btn-sm print-result-btn" 
+                                            title="Print Result"
+                                            data-patient-name="{{ patient.first_name }} {{ patient.last_name }}"
+                                            data-patient-age="{{ (2025 - patient.date_of_birth.year) if patient.date_of_birth else 'N/A' }}"
+                                            data-test-name="{{ lab_result.test_name }}"
+                                            data-result="{{ lab_result.result }}"
+                                            data-test-date="{{ lab_result.date.strftime('%Y-%m-%d %H:%M') }}">
+                                        <i class="fas fa-print"></i>
+                                    </button>
+                                </div>
+                            </td>
+                            <td class="management-actions-cell">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('edit_lab_result', lab_result_id=lab_result.id) }}" 
+                                       class="btn btn-outline-warning btn-sm" 
+                                       title="Edit Lab Result">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form style="display:inline" method="POST" action="{{ url_for('delete_lab_result', lab_result_id=lab_result.id) }}" onsubmit="return confirm('Are you sure you want to delete this lab result?');">
+                                        <button type="submit" 
+                                                class="btn btn-outline-danger btn-sm" 
+                                                title="Delete Lab Result">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data">
+                <h3>No Lab Results Found</h3>
+                <p>No laboratory results have been recorded yet.</p>
+                <a href="{{ url_for('add_lab_result') }}" class="btn btn-primary">Add Your First Lab Result</a>
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if lab_results %}
+        <div style="text-align: center; margin-top: 20px; color: #666; background: white; padding: 15px; border-radius: 8px;">
+            Showing <span id="visibleCount">{{ lab_results|length }}</span> of {{ lab_results|length }} lab results
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search and filter functionality
+    document.getElementById('searchInput').addEventListener('input', filterResults);
+    document.getElementById('testFilter').addEventListener('change', filterResults);
+    document.getElementById('dateFilter').addEventListener('change', filterResults);
+    
+    function filterResults() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const testFilter = document.getElementById('testFilter').value.toLowerCase();
+        const dateFilter = document.getElementById('dateFilter').value;
+        const rows = document.querySelectorAll('#resultsTable tbody tr');
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const patient = row.getAttribute('data-patient').toLowerCase();
+            const test = row.getAttribute('data-test').toLowerCase();
+            const dateStr = row.getAttribute('data-date');
+            const testDate = new Date(dateStr);
+            const now = new Date();
+            
+            let showRow = true;
+            
+            // Filter by search term
+            if (searchTerm && !patient.includes(searchTerm) && !test.includes(searchTerm)) {
+                showRow = false;
+            }
+            
+            // Filter by test type
+            if (testFilter && !test.includes(testFilter)) {
+                showRow = false;
+            }
+            
+            // Filter by date
+            if (dateFilter) {
+                const daysDiff = Math.floor((now - testDate) / (1000 * 60 * 60 * 24));
+                
+                switch (dateFilter) {
+                    case 'today':
+                        if (daysDiff !== 0) showRow = false;
+                        break;
+                    case 'week':
+                        if (daysDiff > 7) showRow = false;
+                        break;
+                    case 'month':
+                        if (daysDiff > 30) showRow = false;
+                        break;
+                    case 'year':
+                        if (daysDiff > 365) showRow = false;
+                        break;
+                }
+            }
+            
+            row.style.display = showRow ? '' : 'none';
+            if (showRow) visibleCount++;
+        });
+        
+        // Update visible count
+        const countElement = document.getElementById('visibleCount');
+        if (countElement) {
+            countElement.textContent = visibleCount;
+        }
+    }
+    
+    // Print Lab Result functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const printButtons = document.querySelectorAll('.print-result-btn');
+        printButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const patientName = this.getAttribute('data-patient-name');
+                const patientAge = this.getAttribute('data-patient-age');
+                const testName = this.getAttribute('data-test-name');
+                const result = this.getAttribute('data-result');
+                const testDate = this.getAttribute('data-test-date');
+                
+                printLabResult(patientName, patientAge, testName, result, testDate);
+            });
+        });
+    });
+    
+    function printLabResult(patientName, patientAge, testName, result, testDate) {
+        const printWindow = window.open('', '_blank');
+        const currentDate = new Date();
+        
+        printWindow.document.write('<!DOCTYPE html>');
+        printWindow.document.write('<html><head>');
+        printWindow.document.write('<title>Lab Result - ' + patientName + '</title>');
+        printWindow.document.write('<style>');
+        printWindow.document.write('body { font-family: Arial, sans-serif; margin: 40px; color: #333; }');
+        printWindow.document.write('.header { text-align: center; border-bottom: 3px solid #667eea; padding-bottom: 20px; margin-bottom: 30px; }');
+        printWindow.document.write('.header h1 { color: #667eea; margin-bottom: 5px; }');
+        printWindow.document.write('.header p { color: #666; margin: 0; }');
+        printWindow.document.write('.result-container { max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 30px; border-radius: 10px; border-left: 5px solid #667eea; }');
+        printWindow.document.write('.result-row { display: flex; justify-content: space-between; margin-bottom: 15px; padding: 10px 0; border-bottom: 1px solid #ddd; }');
+        printWindow.document.write('.result-row:last-child { border-bottom: none; }');
+        printWindow.document.write('.label { font-weight: bold; color: #333; flex: 1; }');
+        printWindow.document.write('.value { flex: 2; text-align: right; color: #555; }');
+        printWindow.document.write('.result-value { font-family: "Courier New", monospace; background-color: #e9ecef; padding: 8px 12px; border-radius: 4px; font-weight: bold; color: #667eea; }');
+        printWindow.document.write('.footer { text-align: center; margin-top: 40px; color: #666; font-size: 0.9em; }');
+        printWindow.document.write('@media print { body { margin: 20px; } .header { border-bottom: 2px solid #000; } }');
+        printWindow.document.write('</style></head><body>');
+        
+        printWindow.document.write('<div class="header">');
+        printWindow.document.write('<h1>Laboratory Result Report</h1>');
+        printWindow.document.write('<p>Electronic Health Record System</p>');
+        printWindow.document.write('</div>');
+        
+        printWindow.document.write('<div class="result-container">');
+        printWindow.document.write('<div class="result-row"><div class="label">Patient Name:</div><div class="value">' + patientName + '</div></div>');
+        printWindow.document.write('<div class="result-row"><div class="label">Patient Age:</div><div class="value">' + patientAge + ' years</div></div>');
+        printWindow.document.write('<div class="result-row"><div class="label">Test Name:</div><div class="value">' + testName + '</div></div>');
+        printWindow.document.write('<div class="result-row"><div class="label">Test Result:</div><div class="value"><span class="result-value">' + result + '</span></div></div>');
+        printWindow.document.write('<div class="result-row"><div class="label">Test Date & Time:</div><div class="value">' + testDate + '</div></div>');
+        printWindow.document.write('<div class="result-row"><div class="label">Report Generated:</div><div class="value">' + currentDate.toLocaleString() + '</div></div>');
+        printWindow.document.write('</div>');
+        
+        printWindow.document.write('<div class="footer">');
+        printWindow.document.write('<p>This is an official laboratory result report generated by the EHR System.</p>');
+        printWindow.document.write('<p>Report printed on ' + currentDate.toLocaleDateString() + '</p>');
+        printWindow.document.write('</div>');
+        
+        printWindow.document.write('<script>');
+        printWindow.document.write('window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };');
+        printWindow.document.write('</script>');
+        
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+    }
+</script>
+{% endblock %}
+                        border-bottom: 3px solid #667eea;
+                        padding-bottom: 20px;
+                        margin-bottom: 30px;
+                    }
+                    .header h1 {
+                        color: #667eea;
+                        margin-bottom: 5px;
+                    }
+                    .header p {
+                        color: #666;
+                        margin: 0;
+                    }
+                    .result-container {
+                        max-width: 600px;
+                        margin: 0 auto;
+                        background: #f9f9f9;
+                        padding: 30px;
+                        border-radius: 10px;
+                        border-left: 5px solid #667eea;
+                    }
+                    .result-row {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 15px;
+                        padding: 10px 0;
+                        border-bottom: 1px solid #ddd;
+                    }
+                    .result-row:last-child {
+                        border-bottom: none;
+                    }
+                    .label {
+                        font-weight: bold;
+                        color: #333;
+                        flex: 1;
+                    }
+                    .value {
+                        flex: 2;
+                        text-align: right;
+                        color: #555;
+                    }
+                    .result-value {
+                        font-family: 'Courier New', monospace;
+                        background-color: #e9ecef;
+                        padding: 8px 12px;
+                        border-radius: 4px;
+                        font-weight: bold;
+                        color: #667eea;
+                    }
+                    .footer {
+                        text-align: center;
+                        margin-top: 40px;
+                        color: #666;
+                        font-size: 0.9em;
+                    }
+                    @media print {
+                        body { margin: 20px; }
+                        .header { border-bottom: 2px solid #000; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Laboratory Result Report</h1>
+                    <p>Electronic Health Record System</p>
+                </div>
+                
+                <div class="result-container">
+                    <div class="result-row">
+                        <div class="label">Patient Name:</div>
+                        <div class="value">${patientName}</div>
+                    </div>
+                    <div class="result-row">
+                        <div class="label">Patient Age:</div>
+                        <div class="value">${patientAge} years</div>
+                    </div>
+                    <div class="result-row">
+                        <div class="label">Test Name:</div>
+                        <div class="value">${testName}</div>
+                    </div>
+                    <div class="result-row">
+                        <div class="label">Test Result:</div>
+                        <div class="value"><span class="result-value">${result}</span></div>
+                    </div>
+                    <div class="result-row">
+                        <div class="label">Test Date & Time:</div>
+                        <div class="value">${testDate}</div>
+                    </div>
+                    <div class="result-row">
+                        <div class="label">Report Generated:</div>
+                        <div class="value">${new Date().toLocaleString()}</div>
+                    </div>
+                </div>
+                
+                <div class="footer">
+                    <p>This is an official laboratory result report generated by the EHR System.</p>
+                    <p>Report printed on ${new Date().toLocaleDateString()}</p>
+                </div>
+                
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        window.onafterprint = function() {
+                            window.close();
+                        };
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+        
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+    }
+</script>
+{% endblock %}

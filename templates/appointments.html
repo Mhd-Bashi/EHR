@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+
+{% block title %}Appointments - EHR System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .appointments-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding: 30px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .page-header h1 {
+        color: #333;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        font-weight: 700;
+    }
+    
+    .page-header p {
+        color: #666;
+        font-size: 1.1rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-left: 5px solid;
+    }
+    
+    .stat-card.total { border-left-color: #667eea; }
+    .stat-card.upcoming { border-left-color: #28a745; }
+    .stat-card.completed { border-left-color: #17a2b8; }
+    .stat-card.scheduled { border-left-color: #ffc107; }
+    .stat-card.cancelled { border-left-color: #dc3545; }
+    
+    .stat-card h3 {
+        font-size: 2.2rem;
+        margin-bottom: 8px;
+        font-weight: 700;
+        color: #333;
+    }
+    
+    .stat-card p {
+        color: #666;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    .controls-section {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .controls-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .search-input, .filter-select {
+        padding: 12px 15px;
+        border: 2px solid #e1e5e9;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .search-input:focus, .filter-select:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .btn {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #218838;
+        transform: translateY(-2px);
+    }
+    
+    .appointments-table-container {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .appointments-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .appointments-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .appointments-table td {
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: middle;
+    }
+    
+    .appointments-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .appointments-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .patient-name {
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .appointment-datetime {
+        font-weight: 500;
+    }
+    
+    .appointment-date {
+        color: #333;
+        font-size: 0.95rem;
+    }
+    
+    .appointment-time {
+        color: #666;
+        font-size: 0.85rem;
+    }
+    
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .status-scheduled {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+    
+    .status-completed {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+    
+    .status-cancelled {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+    
+    .time-indicator {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        margin-left: 10px;
+    }
+    
+    .upcoming {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    .past {
+        background-color: #e9ecef;
+        color: #495057;
+    }
+    
+    .today {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+    }
+    
+    .no-data h3 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+        color: #999;
+    }
+    
+    .no-data p {
+        font-size: 1rem;
+        margin-bottom: 25px;
+    }
+    
+    /* Action buttons styling */
+    .btn-group-sm .btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        margin: 0 2px;
+        border-radius: 4px;
+    }
+    
+    .btn-outline-warning {
+        color: #856404;
+        border-color: #ffc107;
+    }
+    
+    .btn-outline-warning:hover {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #212529;
+    }
+    
+    .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+    }
+    
+    .btn-outline-danger:hover {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: white;
+    }
+    
+    @media (max-width: 768px) {
+        .controls-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .appointments-table {
+            font-size: 0.85rem;
+        }
+        
+        .appointments-table th,
+        .appointments-table td {
+            padding: 10px;
+        }
+        
+        .page-header h1 {
+            font-size: 2rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="appointments-container">
+    <div class="page-header">
+        <h1>Appointments</h1>
+        <p>Manage and view all patient appointments and schedules</p>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <h3>{{ stats.total_appointments }}</h3>
+            <p>Total Appointments</p>
+        </div>
+        <div class="stat-card upcoming">
+            <h3>{{ stats.upcoming_appointments }}</h3>
+            <p>Upcoming</p>
+        </div>
+        <div class="stat-card completed">
+            <h3>{{ stats.completed_appointments }}</h3>
+            <p>Completed</p>
+        </div>
+        <div class="stat-card scheduled">
+            <h3>{{ stats.scheduled_appointments }}</h3>
+            <p>Scheduled</p>
+        </div>
+        <div class="stat-card cancelled">
+            <h3>{{ stats.cancelled_appointments }}</h3>
+            <p>Cancelled</p>
+        </div>
+    </div>
+    
+    <!-- Controls Section -->
+    <div class="controls-section">
+        <div class="controls-grid">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search by patient name...">
+            <select id="statusFilter" class="filter-select">
+                <option value="">All Statuses</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+            </select>
+            <select id="timeFilter" class="filter-select">
+                <option value="">All Time</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="past">Past</option>
+            </select>
+            <a href="{{ url_for('schedule_appointment') }}" class="btn btn-success">+ Schedule Appointment</a>
+        </div>
+    </div>
+    
+    <!-- Appointments Table -->
+    <div class="appointments-table-container">
+        {% if appointments %}
+            <table class="appointments-table" id="appointmentsTable">
+                <thead>
+                    <tr>
+                        <th>Patient</th>
+                        <th>Date & Time</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                        {% set is_upcoming = appointment.date > datetime.now() %}
+                        {% set is_today = appointment.date.date() == datetime.now().date() %}
+                        {% set days_diff = (appointment.date.date() - datetime.now().date()).days %}
+                        
+                        <tr data-patient="{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}" 
+                            data-status="{{ appointment.status.value.lower() }}"
+                            data-date="{{ appointment.date.strftime('%Y-%m-%d') }}"
+                            data-is-upcoming="{{ 'true' if is_upcoming else 'false' }}">
+                            <td>
+                                <div class="patient-name">{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}</div>
+                                {% if appointment.patient.date_of_birth %}
+                                    <small style="color: #666;">Age: {{ (2025 - appointment.patient.date_of_birth.year) }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="appointment-datetime">
+                                    <div class="appointment-date">{{ appointment.date.strftime('%Y-%m-%d') }}</div>
+                                    <div class="appointment-time">{{ appointment.date.strftime('%H:%M') }}</div>
+                                </div>
+                                {% if is_today %}
+                                    <span class="time-indicator today">Today</span>
+                                {% elif is_upcoming %}
+                                    <span class="time-indicator upcoming">
+                                        {% if days_diff == 1 %}Tomorrow{% else %}{{ days_diff }} days{% endif %}
+                                    </span>
+                                {% else %}
+                                    <span class="time-indicator past">
+                                        {% if days_diff == -1 %}Yesterday{% else %}{{ (-days_diff) }} days ago{% endif %}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ appointment.status.value.lower() }}">
+                                    {{ appointment.status.value }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if appointment.status.value == 'Completed' %}
+                                    <span style="color: #28a745; font-weight: 500;">1 hour</span>
+                                {% elif appointment.status.value == 'Scheduled' %}
+                                    <span style="color: #ffc107; font-weight: 500;">Scheduled</span>
+                                {% else %}
+                                    <span style="color: #dc3545; font-weight: 500;">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('edit_appointment', appointment_id=appointment.id) }}" 
+                                       class="btn btn-outline-warning btn-sm" title="Edit Appointment">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button onclick="deleteAppointment({{ appointment.id }}, '{{ appointment.patient.first_name }} {{ appointment.patient.last_name }}')" 
+                                            class="btn btn-outline-danger btn-sm" title="Delete Appointment">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-data">
+                <h3>No Appointments Found</h3>
+                <p>No appointments have been scheduled yet.</p>
+                <a href="{{ url_for('schedule_appointment') }}" class="btn btn-success">Schedule Your First Appointment</a>
+            </div>
+        {% endif %}
+    </div>
+    
+    {% if appointments %}
+        <div style="text-align: center; margin-top: 20px; color: #666; background: white; padding: 15px; border-radius: 8px;">
+            Showing <span id="visibleCount">{{ appointments|length }}</span> of {{ appointments|length }} appointments
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Search and filter functionality
+    document.getElementById('searchInput').addEventListener('input', filterAppointments);
+    document.getElementById('statusFilter').addEventListener('change', filterAppointments);
+    document.getElementById('timeFilter').addEventListener('change', filterAppointments);
+    
+    function filterAppointments() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+        const timeFilter = document.getElementById('timeFilter').value;
+        const rows = document.querySelectorAll('#appointmentsTable tbody tr');
+        
+        let visibleCount = 0;
+        
+        rows.forEach(row => {
+            const patient = row.getAttribute('data-patient').toLowerCase();
+            const status = row.getAttribute('data-status');
+            const dateStr = row.getAttribute('data-date');
+            const isUpcoming = row.getAttribute('data-is-upcoming') === 'true';
+            const appointmentDate = new Date(dateStr);
+            const now = new Date();
+            const today = new Date().toDateString();
+            
+            let showRow = true;
+            
+            // Filter by search term
+            if (searchTerm && !patient.includes(searchTerm)) {
+                showRow = false;
+            }
+            
+            // Filter by status
+            if (statusFilter && status !== statusFilter) {
+                showRow = false;
+            }
+            
+            // Filter by time
+            if (timeFilter) {
+                switch (timeFilter) {
+                    case 'upcoming':
+                        if (!isUpcoming) showRow = false;
+                        break;
+                    case 'today':
+                        if (appointmentDate.toDateString() !== today) showRow = false;
+                        break;
+                    case 'week':
+                        const weekFromNow = new Date();
+                        weekFromNow.setDate(weekFromNow.getDate() + 7);
+                        if (appointmentDate < now || appointmentDate > weekFromNow) showRow = false;
+                        break;
+                    case 'month':
+                        const monthFromNow = new Date();
+                        monthFromNow.setMonth(monthFromNow.getMonth() + 1);
+                        if (appointmentDate < now || appointmentDate > monthFromNow) showRow = false;
+                        break;
+                    case 'past':
+                        if (isUpcoming) showRow = false;
+                        break;
+                }
+            }
+            
+            row.style.display = showRow ? '' : 'none';
+            if (showRow) visibleCount++;
+        });
+        
+        // Update visible count
+        const countElement = document.getElementById('visibleCount');
+        if (countElement) {
+            countElement.textContent = visibleCount;
+        }
+    }
+    
+    // Delete appointment function
+    function deleteAppointment(appointmentId, patientName) {
+        if (confirm(`Are you sure you want to delete the appointment for ${patientName}?\n\nThis action cannot be undone.`)) {
+            // Create a form to submit the delete request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = `/delete_appointment/${appointmentId}`;
+            
+            // Add CSRF token if needed (you might need to add this)
+            const csrfToken = document.querySelector('meta[name=csrf-token]');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrf_token';
+                csrfInput.value = csrfToken.getAttribute('content');
+                form.appendChild(csrfInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+</script>
+{% endblock %}

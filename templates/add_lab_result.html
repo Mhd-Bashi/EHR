@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Lab Result - EHR System</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 700px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        label {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        input, select, textarea {
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e9ecef;
+        }
+        
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .required {
+            color: #dc3545;
+        }
+        
+        .patient-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .patient-info h3 {
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .patient-info p {
+            color: #666;
+            margin: 0;
+        }
+        
+        .lab-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .lab-info h4 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+        
+        .lab-info ul {
+            color: #0c5460;
+            margin-left: 20px;
+        }
+        
+        .lab-info li {
+            margin-bottom: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Add Lab Result</h1>
+            <p>Record new laboratory test results</p>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'error' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="lab-info">
+            <h4>Common Lab Tests</h4>
+            <ul>
+                <li><strong>CBC:</strong> Complete Blood Count</li>
+                <li><strong>CMP:</strong> Comprehensive Metabolic Panel</li>
+                <li><strong>Lipid Panel:</strong> Cholesterol and triglycerides</li>
+                <li><strong>HbA1c:</strong> Blood sugar control (diabetes)</li>
+                <li><strong>TSH:</strong> Thyroid function</li>
+                <li><strong>PSA:</strong> Prostate specific antigen</li>
+            </ul>
+        </div>
+        
+        <form method="POST" id="labResultForm">
+            <div class="form-group">
+                <label for="patient_id">Patient <span class="required">*</span></label>
+                <select id="patient_id" name="patient_id" required>
+                    <option value="">Select a patient</option>
+                    {% for patient in patients %}
+                        <option value="{{ patient.id }}" 
+                                data-dob="{{ patient.date_of_birth.strftime('%Y-%m-%d') if patient.date_of_birth }}"
+                                {{ 'selected' if (request.form.patient_id == patient.id|string) or (selected_patient_id == patient.id|string) }}>
+                            {{ patient.first_name }} {{ patient.last_name }}
+                            {% if patient.date_of_birth %}
+                                (DOB: {{ patient.date_of_birth.strftime('%Y-%m-%d') }})
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="patientInfo" class="patient-info" style="display: none;">
+                <h3>Selected Patient Information</h3>
+                <p id="patientDetails"></p>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="test_name">Test Name <span class="required">*</span></label>
+                    <input type="text" id="test_name" name="test_name" required 
+                           placeholder="e.g., Complete Blood Count (CBC)"
+                           value="{{ request.form.test_name if request.form.test_name }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="test_date">Test Date <span class="required">*</span></label>
+                    <input type="datetime-local" id="test_date" name="test_date" required
+                           value="{{ request.form.test_date if request.form.test_date }}">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="result_value">Result Value</label>
+                    <input type="text" id="result_value" name="result" required
+                           placeholder="e.g., 12.5, Normal, Positive"
+                           value="{{ request.form.result if request.form.result }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="unit">Unit</label>
+                    <input type="text" id="unit" name="unit" 
+                           placeholder="e.g., mg/dL, g/dL, %"
+                           value="{{ request.form.unit if request.form.unit }}">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="reference_range">Reference Range</label>
+                    <input type="text" id="reference_range" name="reference_range" 
+                           placeholder="e.g., 10-15, <100, Normal"
+                           value="{{ request.form.reference_range if request.form.reference_range }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="status">Status</label>
+                    <select id="status" name="status">
+                        <option value="">Select status</option>
+                        <option value="Normal" {{ 'selected' if request.form.status == 'Normal' }}>Normal</option>
+                        <option value="Abnormal" {{ 'selected' if request.form.status == 'Abnormal' }}>Abnormal</option>
+                        <option value="High" {{ 'selected' if request.form.status == 'High' }}>High</option>
+                        <option value="Low" {{ 'selected' if request.form.status == 'Low' }}>Low</option>
+                        <option value="Critical" {{ 'selected' if request.form.status == 'Critical' }}>Critical</option>
+                        <option value="Pending" {{ 'selected' if request.form.status == 'Pending' }}>Pending</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea id="notes" name="notes" 
+                          placeholder="Additional notes about the test results, interpretation, or follow-up recommendations">{{ request.form.notes if request.form.notes }}</textarea>
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">Add Lab Result</button>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        // Show patient information when selected
+        document.getElementById('patient_id').addEventListener('change', function() {
+            const select = this;
+            const patientInfo = document.getElementById('patientInfo');
+            const patientDetails = document.getElementById('patientDetails');
+            
+            if (select.value) {
+                const selectedOption = select.options[select.selectedIndex];
+                const patientName = selectedOption.text.split(' (DOB:')[0];
+                const dob = selectedOption.getAttribute('data-dob');
+                
+                patientDetails.innerHTML = `<strong>${patientName}</strong>` + 
+                                         (dob ? `<br>Date of Birth: ${dob}` : '');
+                patientInfo.style.display = 'block';
+            } else {
+                patientInfo.style.display = 'none';
+            }
+        });
+        
+        // Set maximum date to now (can't have future test dates by default)
+        const now = new Date();
+        const maxDateTime = now.toISOString().slice(0, 16);
+        document.getElementById('test_date').max = maxDateTime;
+        
+        document.getElementById('labResultForm').addEventListener('submit', function(e) {
+            const patientId = document.getElementById('patient_id').value;
+            const testName = document.getElementById('test_name').value.trim();
+            const testDate = document.getElementById('test_date').value;
+            
+            if (!patientId || !testName || !testDate) {
+                e.preventDefault();
+                alert('Please fill in all required fields (Patient, Test Name, and Test Date).');
+                return false;
+            }
+            
+            // Validate test date is not too far in the future
+            const testDateTime = new Date(testDate);
+            const now = new Date();
+            const futureLimit = new Date(now.getTime() + (24 * 60 * 60 * 1000)); // 24 hours from now
+            
+            if (testDateTime > futureLimit) {
+                const confirm = window.confirm('This test date is in the future. Are you sure this is correct?');
+                if (!confirm) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        // Common test name suggestions
+        const commonTests = [
+            'Complete Blood Count (CBC)',
+            'Comprehensive Metabolic Panel (CMP)',
+            'Lipid Panel',
+            'Hemoglobin A1c (HbA1c)',
+            'Thyroid Stimulating Hormone (TSH)',
+            'Prostate Specific Antigen (PSA)',
+            'Urinalysis',
+            'Vitamin D',
+            'Vitamin B12',
+            'Folate',
+            'Iron Studies',
+            'Liver Function Tests (LFT)',
+            'Kidney Function Tests',
+            'Cardiac Enzymes'
+        ];
+        
+        // Add autocomplete functionality
+        const testNameInput = document.getElementById('test_name');
+        testNameInput.addEventListener('input', function() {
+            // Simple autocomplete could be implemented here
+            // For now, we'll just provide the placeholder with examples
+        });
+        
+        // Trigger patient info display if form is pre-filled
+        if (document.getElementById('patient_id').value) {
+            document.getElementById('patient_id').dispatchEvent(new Event('change'));
+        }
+    </script>
+</body>
+</html>

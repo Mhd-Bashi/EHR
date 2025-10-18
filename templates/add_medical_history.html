@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Add Medical History{% endblock %}
+
+{% block extra_css %}
+<style>
+    .medical-form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .form-header h1 {
+        color: #333;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+    
+    .form-header p {
+        color: #666;
+        font-size: 1.1rem;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-info h3 {
+        color: #333;
+        margin-bottom: 5px;
+    }
+    
+    .patient-info p {
+        color: #666;
+        margin: 0;
+    }
+    
+    .allergy-info {
+        background: #fff3cd;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #ffeaa7;
+    }
+    
+    .allergy-info h4 {
+        color: #856404;
+        margin-bottom: 10px;
+    }
+    
+    .allergy-info p {
+        color: #856404;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+    
+    .required {
+        color: #dc3545;
+    }
+    
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .medical-form-container {
+            margin: 20px;
+            padding: 20px;
+        }
+        
+        .form-header h1 {
+            font-size: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="medical-form-container">
+            <div class="form-header">
+                <h1>Add Medical History</h1>
+                <p>Record medical history and allergy information</p>
+            </div>
+            
+            <form method="POST" id="medicalHistoryForm">
+                <div class="form-group">
+                    <label for="patient_id">Patient <span class="required">*</span></label>
+                    <select id="patient_id" name="patient_id" class="form-control" required>
+                        <option value="">Select a patient</option>
+                        {% for patient in patients %}
+                            <option value="{{ patient.id }}" 
+                                    data-dob="{{ patient.date_of_birth.strftime('%Y-%m-%d') if patient.date_of_birth }}"
+                                    {{ 'selected' if (request.form.patient_id == patient.id|string) or (selected_patient_id == patient.id|string) }}>
+                                {{ patient.first_name }} {{ patient.last_name }}
+                                {% if patient.date_of_birth %}
+                                    (DOB: {{ patient.date_of_birth.strftime('%Y-%m-%d') }})
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div id="patientInfo" class="patient-info" style="display: none;">
+                    <h3>Selected Patient Information</h3>
+                    <p id="patientDetails"></p>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="allergy_id">Allergy/Condition <span class="required">*</span></label>
+                        <select id="allergy_id" name="allergy_id" class="form-control" required>
+                            <option value="">Select an allergy or condition</option>
+                            {% for allergy in allergies %}
+                                <option value="{{ allergy.id }}" 
+                                        data-description="{{ allergy.description or '' }}"
+                                        {{ 'selected' if request.form.allergy_id == allergy.id|string }}>
+                                    {{ allergy.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="history_date">Date <span class="required">*</span></label>
+                        <input type="date" id="history_date" name="history_date" class="form-control" required
+                               value="{{ request.form.history_date if request.form.history_date }}">
+                    </div>
+                </div>
+                
+                <div id="allergyInfo" class="allergy-info" style="display: none;">
+                    <h4>Allergy Information</h4>
+                    <p id="allergyDescription"></p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description <span class="required">*</span></label>
+                    <textarea id="description" name="description" class="form-control" required 
+                              placeholder="Describe the medical history, severity, symptoms, treatment, or any relevant details">{{ request.form.description if request.form.description }}</textarea>
+                </div>
+                
+                <div class="btn-group" role="group">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Add Medical History
+                    </button>
+                    <a href="{{ url_for('view_all_patients') }}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Show patient information when selected
+    document.getElementById('patient_id').addEventListener('change', function() {
+        const select = this;
+        const patientInfo = document.getElementById('patientInfo');
+        const patientDetails = document.getElementById('patientDetails');
+        
+        if (select.value) {
+            const selectedOption = select.options[select.selectedIndex];
+            const patientName = selectedOption.text.split(' (DOB:')[0];
+            const dob = selectedOption.getAttribute('data-dob');
+            
+            patientDetails.innerHTML = `<strong>${patientName}</strong>` + 
+                                     (dob ? `<br>Date of Birth: ${dob}` : '');
+            patientInfo.style.display = 'block';
+        } else {
+            patientInfo.style.display = 'none';
+        }
+    });
+    
+    // Show allergy information when selected
+    document.getElementById('allergy_id').addEventListener('change', function() {
+        const select = this;
+        const allergyInfo = document.getElementById('allergyInfo');
+        const allergyDescription = document.getElementById('allergyDescription');
+        
+        if (select.value) {
+            const selectedOption = select.options[select.selectedIndex];
+            const description = selectedOption.getAttribute('data-description');
+            
+            if (description) {
+                allergyDescription.textContent = description;
+                allergyInfo.style.display = 'block';
+            } else {
+                allergyInfo.style.display = 'none';
+            }
+        } else {
+            allergyInfo.style.display = 'none';
+        }
+    });
+    
+    // Set maximum date to today (can't have future medical history by default)
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('history_date').max = today;
+    
+    document.getElementById('medicalHistoryForm').addEventListener('submit', function(e) {
+        const patientId = document.getElementById('patient_id').value;
+        const allergyId = document.getElementById('allergy_id').value;
+        const description = document.getElementById('description').value.trim();
+        const historyDate = document.getElementById('history_date').value;
+        
+        if (!patientId || !allergyId || !description || !historyDate) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+            return false;
+        }
+        
+        // Validate date is not in the future
+        const selectedDate = new Date(historyDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to compare dates only
+        
+        if (selectedDate > today) {
+            e.preventDefault();
+            alert('Medical history date cannot be in the future.');
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Trigger info displays if form is pre-filled
+    if (document.getElementById('patient_id').value) {
+        document.getElementById('patient_id').dispatchEvent(new Event('change'));
+    }
+    if (document.getElementById('allergy_id').value) {
+        document.getElementById('allergy_id').dispatchEvent(new Event('change'));
+    }
+</script>
+{% endblock %}

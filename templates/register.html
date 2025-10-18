@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/styles/register.css">
+</head>
+<body>
+    <div class="register-container">
+        <h2>Create Account</h2>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('register_doctor') }}" id="registrationForm" novalidate>
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" name="firstName" autocomplete="given-name" maxlength="100">
+                <div class="error-text" id="firstName-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name <span class="required">*</span></label>
+                <input type="text" id="lastName" name="lastName" autocomplete="family-name" required maxlength="100">
+                <div class="error-text" id="lastName-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="username">Username <span class="required">*</span></label>
+                <input type="text" id="username" name="username" autocomplete="username" required 
+                       minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+">
+                <div class="error-text" id="username-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="email">Email <span class="required">*</span></label>
+                <input type="email" id="email" name="email" autocomplete="email" required maxlength="120">
+                <div class="error-text" id="email-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password <span class="required">*</span></label>
+                <input type="password" id="password" name="password" autocomplete="new-password" required 
+                       minlength="8" maxlength="200">
+                <div class="error-text" id="password-error"></div>
+                <small style="color: #666; font-size: 12px;">
+                    Password must be at least 8 characters with uppercase, lowercase, and a number.
+                </small>
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" autocomplete="tel" maxlength="20">
+                <div class="error-text" id="phone-error"></div>
+            </div>
+            <div class="form-group">
+                <label for="speciality">Speciality</label>
+                <select id="speciality" name="speciality">
+                    <option value="">Select Speciality</option>
+                    <option value="General Practitioner">General Practitioner</option>
+                    <option value="Cardiology">Cardiology</option>
+                    <option value="Dermatology">Dermatology</option>
+                    <option value="Neurology">Neurology</option>
+                    <option value="Pediatrics">Pediatrics</option>
+                    <option value="Radiology">Radiology</option>
+                    <option value="Other">Other</option>
+                </select>
+                <div class="error-text" id="speciality-error"></div>
+            </div>
+            <button type="submit" id="submitBtn">Register</button>
+        </form>
+    </div>
+
+    <script>
+        // Real-time validation
+        const form = document.getElementById('registrationForm');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        // Validation functions
+        function validateEmail(email) {
+            const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            return re.test(email);
+        }
+
+        function validatePassword(password) {
+            const hasUpper = /[A-Z]/.test(password);
+            const hasLower = /[a-z]/.test(password);
+            const hasNumber = /\d/.test(password);
+            const minLength = password.length >= 8;
+            
+            return {
+                valid: hasUpper && hasLower && hasNumber && minLength,
+                hasUpper, hasLower, hasNumber, minLength
+            };
+        }
+
+        function showError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(fieldId + '-error');
+            
+            field.classList.add('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function clearError(fieldId) {
+            const field = document.getElementById(fieldId);
+            const errorDiv = document.getElementById(fieldId + '-error');
+            
+            field.classList.remove('error');
+            errorDiv.style.display = 'none';
+        }
+
+        function validateField(field) {
+            const fieldId = field.id;
+            const value = field.value.trim();
+            let isValid = true;
+
+            // Clear previous error
+            clearError(fieldId);
+
+            switch(fieldId) {
+                case 'lastName':
+                    if (!value) {
+                        showError(fieldId, 'Last name is required');
+                        isValid = false;
+                    }
+                    break;
+
+                case 'username':
+                    if (!value) {
+                        showError(fieldId, 'Username is required');
+                        isValid = false;
+                    } else if (value.length < 3 || value.length > 20) {
+                        showError(fieldId, 'Username must be 3-20 characters');
+                        isValid = false;
+                    } else if (!/^[a-zA-Z0-9_]+$/.test(value)) {
+                        showError(fieldId, 'Username can only contain letters, numbers, and underscores');
+                        isValid = false;
+                    }
+                    break;
+
+                case 'email':
+                    if (!value) {
+                        showError(fieldId, 'Email is required');
+                        isValid = false;
+                    } else if (!validateEmail(value)) {
+                        showError(fieldId, 'Please enter a valid email address');
+                        isValid = false;
+                    }
+                    break;
+
+                case 'password':
+                    if (!value) {
+                        showError(fieldId, 'Password is required');
+                        isValid = false;
+                    } else {
+                        const validation = validatePassword(value);
+                        if (!validation.valid) {
+                            let message = 'Password must contain: ';
+                            let requirements = [];
+                            
+                            if (!validation.minLength) requirements.push('at least 8 characters');
+                            if (!validation.hasUpper) requirements.push('uppercase letter');
+                            if (!validation.hasLower) requirements.push('lowercase letter');
+                            if (!validation.hasNumber) requirements.push('number');
+                            
+                            message += requirements.join(', ');
+                            showError(fieldId, message);
+                            isValid = false;
+                        }
+                    }
+                    break;
+            }
+
+            return isValid;
+        }
+
+        // Add real-time validation
+        ['lastName', 'username', 'email', 'password'].forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            field.addEventListener('blur', () => validateField(field));
+            field.addEventListener('input', () => {
+                if (field.classList.contains('error')) {
+                    validateField(field);
+                }
+            });
+        });
+
+        // Form submission validation
+        form.addEventListener('submit', function(e) {
+            let formIsValid = true;
+            
+            ['lastName', 'username', 'email', 'password'].forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                const fieldValid = validateField(field);
+                if (!fieldValid) {
+                    formIsValid = false;
+                }
+            });
+
+            if (!formIsValid) {
+                e.preventDefault();
+                alert('Please fix the errors in the form before submitting.');
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Creating Account...';
+            }
+        });
+
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(msg => {
+                msg.style.transition = 'opacity 0.5s';
+                msg.style.opacity = '0';
+                setTimeout(() => msg.remove(), 500);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

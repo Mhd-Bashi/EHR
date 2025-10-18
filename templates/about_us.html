@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+
+{% block title %}About Us - EHR System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .about-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .hero-section {
+        text-align: center;
+        margin-bottom: 50px;
+        padding: 60px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+        background-size: 50px 50px;
+        opacity: 0.3;
+    }
+    
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .hero-section h1 {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+        font-weight: 800;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .hero-section p {
+        font-size: 1.3rem;
+        margin-bottom: 0;
+        opacity: 0.9;
+        font-weight: 300;
+    }
+    
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 50px;
+    }
+    
+    .content-card {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .content-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .content-card h2 {
+        color: #333;
+        font-size: 2rem;
+        margin-bottom: 25px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+    }
+    
+    .content-card h2::before {
+        content: '';
+        width: 40px;
+        height: 40px;
+        margin-right: 15px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: inline-block;
+    }
+    
+    .content-card p {
+        color: #666;
+        line-height: 1.7;
+        font-size: 1.05rem;
+        margin-bottom: 20px;
+    }
+    
+    .features-section {
+        background: white;
+        padding: 50px;
+        border-radius: 20px;
+        margin-bottom: 40px;
+        box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .features-section h2 {
+        text-align: center;
+        color: #333;
+        font-size: 2.5rem;
+        margin-bottom: 50px;
+        font-weight: 700;
+    }
+    
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
+    }
+    
+    .feature-card {
+        text-align: center;
+        padding: 30px 20px;
+        border-radius: 15px;
+        border: 2px solid #f8f9fa;
+        transition: all 0.3s ease;
+    }
+    
+    .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: #667eea;
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.15);
+    }
+    
+    .feature-icon {
+        width: 70px;
+        height: 70px;
+        margin: 0 auto 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+    }
+    
+    .feature-card h3 {
+        color: #333;
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+        font-weight: 600;
+    }
+    
+    .feature-card p {
+        color: #666;
+        line-height: 1.6;
+    }
+    
+    .stats-section {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 50px;
+        border-radius: 20px;
+        margin-bottom: 40px;
+        text-align: center;
+    }
+    
+    .stats-section h2 {
+        color: #333;
+        font-size: 2.5rem;
+        margin-bottom: 40px;
+        font-weight: 700;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 30px;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #667eea;
+        margin-bottom: 10px;
+        display: block;
+    }
+    
+    .stat-label {
+        color: #666;
+        font-size: 1.1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .team-section {
+        background: white;
+        padding: 50px;
+        border-radius: 20px;
+        margin-bottom: 40px;
+        box-shadow: 0 6px 30px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    
+    .team-section h2 {
+        color: #333;
+        font-size: 2.5rem;
+        margin-bottom: 20px;
+        font-weight: 700;
+    }
+    
+    .team-description {
+        color: #666;
+        font-size: 1.1rem;
+        line-height: 1.7;
+        max-width: 800px;
+        margin: 0 auto 40px;
+    }
+    
+    .contact-info {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        margin-top: 40px;
+    }
+    
+    .contact-info h3 {
+        font-size: 1.8rem;
+        margin-bottom: 25px;
+        font-weight: 600;
+    }
+    
+    .contact-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+    }
+    
+    .contact-item {
+        opacity: 0.9;
+    }
+    
+    .contact-item h4 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+        font-weight: 600;
+    }
+    
+    .contact-item p {
+        margin: 0;
+        opacity: 0.8;
+    }
+    
+    @media (max-width: 768px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .hero-section h1 {
+            font-size: 2.5rem;
+        }
+        
+        .hero-section p {
+            font-size: 1.1rem;
+        }
+        
+        .features-section,
+        .stats-section,
+        .team-section {
+            padding: 30px 20px;
+        }
+        
+        .content-card {
+            padding: 25px;
+        }
+        
+        .contact-details {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="about-container">
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-content">
+            <h1>VitalTrack</h1>
+            <p>Advanced Electronic Health Records for Modern Healthcare</p>
+        </div>
+    </div>
+    
+    <!-- Mission & Vision -->
+    <div class="content-grid">
+        <div class="content-card">
+            <h2>Our Mission</h2>
+            <p>
+                To revolutionize healthcare management through innovative Electronic Health Records technology. 
+                We strive to provide healthcare professionals with intuitive, secure, and comprehensive tools 
+                that enhance patient care and streamline medical workflows.
+            </p>
+            <p>
+                Our mission is to bridge the gap between traditional healthcare practices and modern digital 
+                solutions, ensuring that every patient receives the best possible care through efficient 
+                data management and accessibility.
+            </p>
+        </div>
+        
+        <div class="content-card">
+            <h2>Our Vision</h2>
+            <p>
+                To become the leading provider of Electronic Health Records solutions that transform healthcare 
+                delivery worldwide. We envision a future where medical data is seamlessly integrated, 
+                instantly accessible, and completely secure.
+            </p>
+            <p>
+                Through continuous innovation and dedication to excellence, we aim to create a healthcare 
+                ecosystem where providers can focus on what matters most - delivering exceptional patient care.
+            </p>
+        </div>
+    </div>
+    
+    <!-- Features Section -->
+    <div class="features-section">
+        <h2>Key Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Patient Management</h3>
+                <p>Comprehensive patient profiles with complete medical history, demographics, and treatment records.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📅</div>
+                <h3>Appointment Scheduling</h3>
+                <p>Efficient appointment management with automated reminders and flexible scheduling options.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🧪</div>
+                <h3>Lab Results</h3>
+                <p>Integrated laboratory result tracking with trend analysis and automated flagging of abnormal values.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Analytics Dashboard</h3>
+                <p>Real-time insights and analytics to help healthcare providers make informed decisions.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>HIPAA Compliance</h3>
+                <p>Enterprise-grade security ensuring full HIPAA compliance and patient data protection.</p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>Mobile Access</h3>
+                <p>Responsive design allowing secure access to patient data from any device, anywhere.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <h2>System Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-number">{{ system_stats.total_patients }}</span>
+                <div class="stat-label">Total Patients</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ system_stats.total_appointments }}</span>
+                <div class="stat-label">Appointments Scheduled</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ system_stats.total_lab_results }}</span>
+                <div class="stat-label">Lab Results Recorded</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ system_stats.active_doctors }}</span>
+                <div class="stat-label">Active Doctors</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">99.9%</span>
+                <div class="stat-label">System Uptime</div>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">24/7</span>
+                <div class="stat-label">Support Available</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Team Section -->
+    <div class="team-section">
+        <h2>Our Commitment</h2>
+        <div class="team-description">
+            Our dedicated team of healthcare professionals, software engineers, and data security experts 
+            work tirelessly to ensure that our EHR system meets the highest standards of quality, security, 
+            and usability. We are committed to continuous improvement and innovation in healthcare technology.
+            
+            <br><br>
+            
+            With years of experience in healthcare IT and a deep understanding of medical workflows, 
+            we design solutions that truly serve the needs of healthcare providers and their patients. 
+            Every feature is carefully crafted to enhance efficiency while maintaining the human touch 
+            that is essential to quality healthcare.
+        </div>
+    </div>
+    
+    <!-- Contact Information -->
+    <div class="contact-info">
+        <h3>Get in Touch</h3>
+        <p>We're here to help you transform your healthcare practice with our advanced EHR solutions.</p>
+        
+        <div class="contact-details">
+            <div class="contact-item">
+                <h4>📧 Email Support</h4>
+                <p>support@ehrsystem.com</p>
+                <p>sales@ehrsystem.com</p>
+            </div>
+            
+            <div class="contact-item">
+                <h4>📞 Phone Support</h4>
+                <p>1-800-EHR-HELP</p>
+                <p>Available 24/7</p>
+            </div>
+            
+            <div class="contact-item">
+                <h4>🏢 Headquarters</h4>
+                <p>123 Healthcare Drive</p>
+                <p>Medical City, MC 12345</p>
+            </div>
+            
+            <div class="contact-item">
+                <h4>⏰ Business Hours</h4>
+                <p>Monday - Friday: 8AM - 6PM</p>
+                <p>Weekend Emergency Support</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add some interactive animations
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate stats on scroll
+        const observerOptions = {
+            threshold: 0.5,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const statNumbers = entry.target.querySelectorAll('.stat-number');
+                    statNumbers.forEach(stat => {
+                        if (!stat.classList.contains('animated')) {
+                            animateNumber(stat);
+                            stat.classList.add('animated');
+                        }
+                    });
+                }
+            });
+        }, observerOptions);
+        
+        const statsSection = document.querySelector('.stats-section');
+        if (statsSection) {
+            observer.observe(statsSection);
+        }
+        
+        function animateNumber(element) {
+            const finalNumber = element.textContent;
+            const numericPart = finalNumber.match(/\d+/);
+            
+            if (numericPart) {
+                const target = parseInt(numericPart[0]);
+                const suffix = finalNumber.replace(numericPart[0], '');
+                let current = 0;
+                const increment = Math.ceil(target / 30);
+                
+                element.textContent = '0' + suffix;
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        element.textContent = finalNumber;
+                        clearInterval(timer);
+                    } else {
+                        element.textContent = current + suffix;
+                    }
+                }, 50);
+            }
+        }
+        
+        // Add hover effects to feature cards
+        const featureCards = document.querySelectorAll('.feature-card');
+        featureCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    });
+</script>
+{% endblock %}
