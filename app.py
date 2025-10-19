@@ -1488,6 +1488,11 @@ def view_patient(patient_id):
         .order_by(LaboratoryResult.date.desc())
         .all()
     )
+    radiology_imaging = (
+        RadiologyImaging.query.filter_by(patient_id=patient.id)
+        .order_by(RadiologyImaging.date.desc())
+        .all()
+    )
     medical_histories = (
         db.session.query(MedicalHistory, Allergy)
         .join(Allergy, MedicalHistory.allergy_id == Allergy.id)
@@ -1500,6 +1505,7 @@ def view_patient(patient_id):
         patient=patient,
         appointments=appointments,
         lab_results=lab_results,
+        radiology_imaging=radiology_imaging,
         medical_histories=medical_histories,
     )
 
