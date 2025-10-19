@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Profile - EHR System{% endblock %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: calc(100vh - 70px); padding: 30px 20px;">
+    <div style="max-width: 1000px; margin: 0 auto;">
+        
+        <!-- Back Link -->
+        <a href="{{ url_for('dashboard') }}" style="color: #667eea; text-decoration: none; font-weight: 600; margin-bottom: 30px; display: inline-flex; align-items: center; background: white; padding: 12px 20px; border-radius: 25px; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1); transition: all 0.3s ease;">
+            <i class="fas fa-arrow-left" style="margin-right: 10px;"></i>
+            Back to Dashboard
+        </a>
+
+        <!-- Profile Layout -->
+        <div style="display: grid; grid-template-columns: 350px 1fr; gap: 30px; align-items: start; margin-top: 20px;">
+            
+            <!-- Profile Card - Left Side -->
+            <div style="background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15); padding: 40px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.8);">
+                
+                <!-- Profile Avatar -->
+                <div style="width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 4rem; color: white; font-weight: bold; box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);">
+                    {% if doctor.first_name and doctor.last_name %}
+                        {{ doctor.first_name[0] }}{{ doctor.last_name[0] }}
+                    {% elif doctor.last_name %}
+                        {{ doctor.last_name[0] }}
+                    {% else %}
+                        <i class="fas fa-user-md"></i>
+                    {% endif %}
+                </div>
+                
+                <!-- Profile Name -->
+                <div style="font-size: 2.2rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; line-height: 1.2;">
+                    Dr. {{ doctor.first_name or '' }} {{ doctor.last_name }}
+                </div>
+                
+                <!-- Profile Role -->
+                <div style="font-size: 1.1rem; color: #8e9aaf; font-weight: 600; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 1px;">
+                    Physician
+                </div>
+
+                <!-- Profile Stats -->
+                <div style="display: flex; justify-content: space-around; margin: 30px 0; padding: 20px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee;">
+                    <div style="text-align: center;">
+                        <span style="display: block; font-size: 1.5rem; font-weight: 700; color: #667eea;">{{ doctor.patients|length if doctor.patients else '0' }}</span>
+                        <span style="font-size: 0.8rem; color: #8e9aaf; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; display: block;">Patients</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <span style="display: block; font-size: 1.5rem; font-weight: 700; color: #667eea;">{{ ((doctor.updated_at - doctor.created_at).days if doctor.updated_at and doctor.created_at else 0) }}</span>
+                        <span style="font-size: 0.8rem; color: #8e9aaf; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; display: block;">Days Active</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <span style="display: block; font-size: 1.5rem; font-weight: 700; color: #667eea;">{% if doctor.email_confirmed %}✓{% else %}×{% endif %}</span>
+                        <span style="font-size: 0.8rem; color: #8e9aaf; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; display: block;">Verified</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 30px; padding-top: 30px; border-top: 1px solid #eee;">
+                    <a href="{{ url_for('edit_doctor_profile') }}" style="padding: 14px 30px; border: none; border-radius: 30px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3); transition: all 0.3s ease;">
+                        <i class="fas fa-edit" style="margin-right: 10px;"></i>
+                        Edit Profile
+                    </a>
+                </div>
+            </div>
+
+            <!-- Information Panel - Right Side -->
+            <div style="background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15); overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.8);">
+                
+                <!-- Info Header -->
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px 40px; text-align: center;">
+                    <h2 style="font-size: 1.8rem; font-weight: 600; margin: 0;">Professional Information</h2>
+                    <p style="opacity: 0.9; margin: 8px 0 0 0; font-size: 1rem;">Complete profile details and account information</p>
+                </div>
+
+                <!-- Info Content -->
+                <div style="padding: 40px;">
+                    
+                    <!-- Personal Information Section -->
+                    <div style="margin-bottom: 35px;">
+                        <div style="font-size: 1.4rem; font-weight: 700; color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; padding-bottom: 10px; border-bottom: 2px solid #f1f3f4;">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #667eea20 0%, #764ba240 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px; color: #667eea; font-size: 1.1rem;">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            Personal Information
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">First Name</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">{{ doctor.first_name or 'Not specified' }}</span>
+                            </div>
+                            
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Last Name</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">{{ doctor.last_name }}</span>
+                            </div>
+                            
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Username</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">{{ doctor.username }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <div style="margin-bottom: 35px;">
+                        <div style="font-size: 1.4rem; font-weight: 700; color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; padding-bottom: 10px; border-bottom: 2px solid #f1f3f4;">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #667eea20 0%, #764ba240 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px; color: #667eea; font-size: 1.1rem;">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            Contact Information
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Email Address</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">{{ doctor.email }}</span>
+                            </div>
+                            
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Phone Number</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">{{ doctor.phone_number or 'Not specified' }}</span>
+                            </div>
+                            
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Email Status</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">
+                                    {% if doctor.email_confirmed %}
+                                        <span style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; background: rgba(40, 167, 69, 0.1); color: #28a745;">
+                                            <i class="fas fa-check-circle" style="margin-right: 5px;"></i> Verified
+                                        </span>
+                                    {% else %}
+                                        <span style="display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; background: rgba(220, 53, 69, 0.1); color: #dc3545;">
+                                            <i class="fas fa-times-circle" style="margin-right: 5px;"></i> Unverified
+                                        </span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Information Section -->
+                    <div>
+                        <div style="font-size: 1.4rem; font-weight: 700; color: #2c3e50; margin-bottom: 20px; display: flex; align-items: center; padding-bottom: 10px; border-bottom: 2px solid #f1f3f4;">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #667eea20 0%, #764ba240 100%); display: flex; align-items: center; justify-content: center; margin-right: 15px; color: #667eea; font-size: 1.1rem;">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            Account Information
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Member Since</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">{{ doctor.created_at.strftime('%B %d, %Y') if doctor.created_at else 'Unknown' }}</span>
+                            </div>
+                            
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Last Updated</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">{{ doctor.updated_at.strftime('%B %d, %Y') if doctor.updated_at else 'Unknown' }}</span>
+                            </div>
+                            
+                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; border-left: 4px solid #667eea;">
+                                <span style="font-weight: 600; color: #6c757d; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; display: block;">Account ID</span>
+                                <span style="color: #2c3e50; font-weight: 600; font-size: 1.1rem;">#{{ doctor.id }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Responsive Styles -->
+<style>
+    @media (max-width: 1024px) {
+        div[style*="grid-template-columns: 350px 1fr"] {
+            display: block !important;
+        }
+        
+        div[style*="grid-template-columns: 350px 1fr"] > div {
+            margin-bottom: 30px !important;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        div[style*="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))"] {
+            grid-template-columns: 1fr !important;
+        }
+        
+        div[style*="display: flex; justify-content: space-around"] {
+            flex-direction: column !important;
+            gap: 15px !important;
+        }
+    }
+</style>
+{% endblock %}

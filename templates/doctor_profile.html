@@ -1,0 +1,585 @@
+{% extends "base.html" %}
+
+{% block title %}Doctor Profile - EHR System{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
+        min-height: 100vh !important;
+    }
+
+    .profile-container {
+        max-width: 1000px !important;
+        margin: 0 auto !important;
+        padding: 30px 20px !important;
+    }
+
+    .profile-wrapper {
+        display: grid;
+        grid-template-columns: 350px 1fr;
+        gap: 30px;
+        align-items: start;
+    }
+
+    /* Profile Card - Left Side */
+    .profile-card {
+        background: white !important;
+        border-radius: 20px !important;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15) !important;
+        padding: 40px !important;
+        text-align: center !important;
+        position: sticky !important;
+        top: 100px !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        backdrop-filter: blur(10px) !important;
+    }
+
+    .profile-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 25px;
+        font-size: 4rem;
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-avatar::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.2), transparent);
+        transform: rotate(45deg);
+        animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    }
+
+    .profile-name {
+        font-size: 2.2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 8px;
+        line-height: 1.2;
+    }
+
+    .profile-role {
+        font-size: 1.1rem;
+        color: #8e9aaf;
+        font-weight: 600;
+        margin-bottom: 25px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .profile-stats {
+        display: flex;
+        justify-content: space-around;
+        margin: 30px 0;
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-number {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #8e9aaf;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 5px;
+    }
+
+    /* Information Panel - Right Side */
+    .info-panel {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+    }
+
+    .info-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px 40px;
+        text-align: center;
+    }
+
+    .info-header h2 {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .info-subtitle {
+        opacity: 0.9;
+        margin-top: 8px;
+        font-size: 1rem;
+    }
+
+    .info-content {
+        padding: 40px;
+    }
+
+    .info-section {
+        margin-bottom: 35px;
+    }
+
+    .info-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f1f3f4;
+    }
+
+    .section-title i {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #667eea20 0%, #764ba240 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        color: #667eea;
+        font-size: 1.1rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .info-item {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 12px;
+        border-left: 4px solid #667eea;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .info-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, transparent, rgba(102, 126, 234, 0.02));
+        transition: all 0.3s ease;
+    }
+
+    .info-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+    }
+
+    .info-item:hover::before {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(102, 126, 234, 0.08));
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .info-value {
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 1.1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-verified {
+        background: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+    }
+
+    .status-unverified {
+        background: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid #eee;
+    }
+
+    .btn-modern {
+        padding: 14px 30px;
+        border: none;
+        border-radius: 30px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        font-size: 0.95rem;
+    }
+
+    .btn-modern::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        transition: all 0.5s ease;
+        transform: translate(-50%, -50%);
+    }
+
+    .btn-modern:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .btn-primary-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary-modern:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary-modern {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn-secondary-modern:hover {
+        background: #667eea;
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.3);
+        text-decoration: none;
+    }
+
+    .btn-modern i {
+        margin-right: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .btn-text {
+        position: relative;
+        z-index: 1;
+    }
+
+    .back-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        margin-bottom: 30px;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+        background: white;
+        padding: 12px 20px;
+        border-radius: 25px;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+    }
+
+    .back-link:hover {
+        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: translateX(-5px);
+        text-decoration: none;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .back-link i {
+        margin-right: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .back-link:hover i {
+        transform: translateX(-3px);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .profile-wrapper {
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        
+        .profile-card {
+            position: static;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .profile-container {
+            padding: 20px 15px;
+        }
+        
+        .profile-card,
+        .info-panel {
+            padding: 25px;
+        }
+        
+        .info-content {
+            padding: 25px;
+        }
+        
+        .info-header {
+            padding: 25px;
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            font-size: 3rem;
+        }
+        
+        .profile-name {
+            font-size: 1.8rem;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .btn-modern {
+            justify-content: center;
+        }
+    }
+
+    /* Additional animations */
+    .info-item {
+        animation: fadeInUp 0.6s ease forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    .info-item:nth-child(1) { animation-delay: 0.1s; }
+    .info-item:nth-child(2) { animation-delay: 0.2s; }
+    .info-item:nth-child(3) { animation-delay: 0.3s; }
+    .info-item:nth-child(4) { animation-delay: 0.4s; }
+    .info-item:nth-child(5) { animation-delay: 0.5s; }
+    .info-item:nth-child(6) { animation-delay: 0.6s; }
+
+    @keyframes fadeInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-container" style="max-width: 1000px; margin: 0 auto; padding: 30px 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: calc(100vh - 140px);">
+    <a href="{{ url_for('dashboard') }}" class="back-link" style="color: #667eea; text-decoration: none; font-weight: 600; margin-bottom: 30px; display: inline-flex; align-items: center; background: white; padding: 12px 20px; border-radius: 25px; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);">
+        <i class="fas fa-arrow-left" style="margin-right: 10px;"></i>
+        Back to Dashboard
+    </a>
+
+    <div class="profile-wrapper" style="display: grid; grid-template-columns: 350px 1fr; gap: 30px; align-items: start;">
+        <!-- Profile Card - Left Side -->
+        <div class="profile-card" style="background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15); padding: 40px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.8);">
+            <div class="profile-avatar" style="width: 150px; height: 150px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 25px; font-size: 4rem; color: white; font-weight: bold; box-shadow: 0 15px 35px rgba(102, 126, 234, 0.3);">
+                {% if doctor.first_name and doctor.last_name %}
+                    {{ doctor.first_name[0] }}{{ doctor.last_name[0] }}
+                {% elif doctor.last_name %}
+                    {{ doctor.last_name[0] }}
+                {% else %}
+                    <i class="fas fa-user-md"></i>
+                {% endif %}
+            </div>
+            
+            <div class="profile-name">
+                Dr. {{ doctor.first_name or '' }} {{ doctor.last_name }}
+            </div>
+            <div class="profile-role">Physician</div>
+
+            <div class="profile-stats">
+                <div class="stat-item">
+                    <span class="stat-number">{{ doctor.patients|length if doctor.patients else '0' }}</span>
+                    <span class="stat-label">Patients</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{{ ((doctor.updated_at - doctor.created_at).days if doctor.updated_at and doctor.created_at else 0) }}</span>
+                    <span class="stat-label">Days Active</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">{% if doctor.email_confirmed %}✓{% else %}×{% endif %}</span>
+                    <span class="stat-label">Verified</span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <a href="{{ url_for('edit_doctor_profile') }}" class="btn-modern btn-primary-modern">
+                    <i class="fas fa-edit"></i>
+                    <span class="btn-text">Edit Profile</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Information Panel - Right Side -->
+        <div class="info-panel">
+            <div class="info-header">
+                <h2>Professional Information</h2>
+                <p class="info-subtitle">Complete profile details and account information</p>
+            </div>
+
+            <div class="info-content">
+                <div class="info-section">
+                    <div class="section-title">
+                        <i class="fas fa-user"></i>
+                        Personal Information
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">First Name</span>
+                            <span class="info-value">{{ doctor.first_name or 'Not specified' }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Last Name</span>
+                            <span class="info-value">{{ doctor.last_name }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Username</span>
+                            <span class="info-value">{{ doctor.username }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="section-title">
+                        <i class="fas fa-envelope"></i>
+                        Contact Information
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Email Address</span>
+                            <span class="info-value">{{ doctor.email }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Phone Number</span>
+                            <span class="info-value">{{ doctor.phone_number or 'Not specified' }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Email Status</span>
+                            <span class="info-value">
+                                {% if doctor.email_confirmed %}
+                                    <span class="status-badge status-verified">
+                                        <i class="fas fa-check-circle"></i> Verified
+                                    </span>
+                                {% else %}
+                                    <span class="status-badge status-unverified">
+                                        <i class="fas fa-times-circle"></i> Unverified
+                                    </span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="section-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Account Information
+                    </div>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Member Since</span>
+                            <span class="info-value">{{ doctor.created_at.strftime('%B %d, %Y') if doctor.created_at else 'Unknown' }}</span>
+                        </div>
+                        
+                        <div class="info-item">
+                            <span class="info-label">Last Updated</span>
+                            <span class="info-value">{{ doctor.updated_at.strftime('%B %d, %Y') if doctor.updated_at else 'Unknown' }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

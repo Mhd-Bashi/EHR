@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Radiology Imaging{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: 'Arial', sans-serif;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 40px 20px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+        <h1 style="margin: 0; font-size: 2.5em; font-weight: 300; letter-spacing: 2px;">Edit Radiology Imaging</h1>
+        <p style="margin: 10px 0 0 0; font-size: 1.1em; opacity: 0.9;">Update radiology imaging record</p>
+    </div>
+
+    <!-- Patient Info Card -->
+    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); margin-bottom: 30px; border: 1px solid #f0f0f0;">
+        <h3 style="margin: 0 0 15px 0; color: #333; font-size: 1.3em;">Patient Information</h3>
+        <div style="display: flex; gap: 30px; align-items: center; flex-wrap: wrap;">
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px 20px; border-radius: 10px; flex: 1; min-width: 200px;">
+                <div style="color: #6c757d; font-size: 0.9em; margin-bottom: 5px;">Patient Name</div>
+                <div style="color: #333; font-weight: 600; font-size: 1.1em;">
+                    {{ imaging.patient.first_name }} {{ imaging.patient.last_name }}
+                </div>
+            </div>
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px 20px; border-radius: 10px;">
+                <div style="color: #6c757d; font-size: 0.9em; margin-bottom: 5px;">Patient ID</div>
+                <div style="color: #333; font-weight: 600; font-size: 1.1em;">{{ imaging.patient.id }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Image Display -->
+    {% if imaging.image_filename %}
+    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); margin-bottom: 30px; border: 1px solid #f0f0f0;">
+        <h3 style="margin: 0 0 15px 0; color: #333; font-size: 1.3em;">Current Image</h3>
+        <div style="text-align: center;">
+            <img src="{{ url_for('radiology_image', filename=imaging.image_filename) }}" 
+                 alt="Radiology Image" 
+                 style="max-width: 100%; max-height: 300px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); cursor: pointer;"
+                 onclick="openImageModal('{{ url_for('radiology_image', filename=imaging.image_filename) }}')">
+            <p style="margin-top: 10px; color: #6c757d; font-size: 0.9em;">Click image to view full size</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data" style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); border: 1px solid #f0f0f0;">
+        <div style="margin-bottom: 25px;">
+            <label for="imaging_name" style="display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 1.1em;">Imaging Name:</label>
+            <input type="text" name="imaging_name" id="imaging_name" required 
+                   value="{{ imaging.name }}"
+                   placeholder="e.g., Chest X-Ray, CT Scan, MRI Brain..."
+                   style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label for="imaging_date" style="display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 1.1em;">Imaging Date & Time:</label>
+            <input type="datetime-local" name="imaging_date" id="imaging_date" required 
+                   value="{{ imaging.date.strftime('%Y-%m-%dT%H:%M') }}"
+                   style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 30px;">
+            <label for="image_file" style="display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 1.1em;">
+                {% if imaging.image_filename %}Replace Image (Optional):{% else %}Upload Image (Optional):{% endif %}
+            </label>
+            <div style="position: relative; display: inline-block; width: 100%;">
+                <input type="file" name="image_file" id="image_file" 
+                       accept=".png,.jpg,.jpeg,.gif,.bmp,.tiff,.dcm,.dicom"
+                       style="width: 100%; padding: 15px; border: 2px dashed #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; box-sizing: border-box; background: #f8f9fa;">
+            </div>
+            <div style="margin-top: 8px; color: #6c757d; font-size: 0.9em;">
+                {% if imaging.image_filename %}
+                    Upload a new image to replace the current one. Leave empty to keep current image.
+                {% else %}
+                    No image currently attached. Upload one if available.
+                {% endif %}
+                <br>Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM (Max: 10MB)
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border: none; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); min-width: 150px;">
+                Update Record
+            </button>
+            <a href="{{ url_for('view_radiology_imaging') }}" style="background: #6c757d; color: white; padding: 15px 30px; border: none; border-radius: 25px; font-size: 16px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4); min-width: 150px; text-align: center; box-sizing: border-box;">
+                Cancel
+            </a>
+        </div>
+    </form>
+
+    <!-- Record History -->
+    <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); margin-top: 30px; border: 1px solid #f0f0f0;">
+        <h3 style="margin: 0 0 15px 0; color: #333; font-size: 1.3em;">Record Information</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px; border-radius: 10px;">
+                <div style="color: #6c757d; font-size: 0.9em; margin-bottom: 5px;">Created</div>
+                <div style="color: #333; font-weight: 600;">{{ imaging.created_at.strftime('%Y-%m-%d %I:%M %p') if imaging.created_at else 'Not available' }}</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); padding: 15px; border-radius: 10px;">
+                <div style="color: #6c757d; font-size: 0.9em; margin-bottom: 5px;">Last Updated</div>
+                <div style="color: #333; font-weight: 600;">{{ imaging.updated_at.strftime('%Y-%m-%d %I:%M %p') if imaging.updated_at else 'Not available' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Focus effects for form elements */
+    input:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+        outline: none !important;
+    }
+
+    /* Hover effects for buttons */
+    button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6) !important;
+    }
+
+    a:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6) !important;
+    }
+
+    /* Responsive design */
+    @media (max-width: 600px) {
+        div[style*="max-width: 800px"] {
+            padding: 10px !important;
+        }
+        
+        form {
+            padding: 20px !important;
+        }
+        
+        div[style*="display: flex"] {
+            flex-direction: column !important;
+        }
+        
+        button, a {
+            width: 100% !important;
+            margin-bottom: 10px !important;
+        }
+        
+        div[style*="display: grid"] {
+            grid-template-columns: 1fr !important;
+        }
+    }
+</style>
+
+<!-- Image Modal -->
+<div id="imageModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.9);" onclick="closeImageModal()">
+    <div style="position: relative; margin: auto; padding: 0; width: 90%; max-width: 1200px; text-align: center;">
+        <img id="modalImage" style="width: 100%; height: auto; max-height: 90vh; object-fit: contain;">
+        <span onclick="closeImageModal()" style="position: absolute; top: 15px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; transition: 0.3s;">&times;</span>
+    </div>
+</div>
+
+<script>
+    function openImageModal(imageSrc) {
+        document.getElementById('modalImage').src = imageSrc;
+        document.getElementById('imageModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    // Close modal when clicking outside the image
+    document.getElementById('imageModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeImageModal();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeImageModal();
+        }
+    });
+</script>
+{% endblock %}

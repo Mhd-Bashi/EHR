@@ -1,5 +1,5 @@
 class Config:
-    SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:root@localhost/ehr_system'
+    SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://root:root@localhost/ehr_system"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SECRET_KEY = "f8d88ec30c2e009dce1f76c91b0be88d458eb73dc152523f6258b8ba68b108ee"

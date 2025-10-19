@@ -9,7 +9,9 @@ db = SQLAlchemy()
 doctor_specialty = db.Table(
     "doctor_specialty",
     db.Column("doctor_id", db.Integer, db.ForeignKey("doctor.id"), primary_key=True),
-    db.Column("specialty_id", db.Integer, db.ForeignKey("specialty.id"), primary_key=True),
+    db.Column(
+        "specialty_id", db.Integer, db.ForeignKey("specialty.id"), primary_key=True
+    ),
 )
 
 
@@ -26,7 +28,9 @@ class Doctor(db.Model):
     email_confirmed_at = db.Column(db.DateTime)
     password = db.Column(db.String(200), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     # One-to-many
     patients = db.relationship(
@@ -94,13 +98,12 @@ class Patient(db.Model):
     email = db.Column(db.String(120), unique=False, nullable=True, index=True)
     phone_number = db.Column(db.String(20), nullable=True)
     age = db.Column(db.Integer)
-    gender = db.Column(
-        Enum(GenderEnum, name="gender_enum"),
-        nullable=True
-    )
+    gender = db.Column(Enum(GenderEnum, name="gender_enum"), nullable=True)
     date_of_birth = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     doctor_id = db.Column(db.Integer, db.ForeignKey("doctor.id"), nullable=False)
     doctor = db.relationship("Doctor", back_populates="patients")
@@ -136,6 +139,13 @@ class Patient(db.Model):
         lazy=True,
     )
 
+    radiology_imaging = db.relationship(
+        "RadiologyImaging",
+        back_populates="patient",
+        cascade="all, delete-orphan",
+        lazy=True,
+    )
+
     prescriptions = db.relationship(
         "Prescription",
         back_populates="patient",
@@ -150,11 +160,7 @@ class Patient(db.Model):
         lazy=True,
     )
 
-    allergies = db.relationship(
-        "Allergy",
-        secondary="medical_history",
-        viewonly=True
-        )
+    allergies = db.relationship("Allergy", secondary="medical_history", viewonly=True)
 
     def __repr__(self):
         return f"<Patient id={self.id} {self.first_name} {self.last_name}>"
@@ -164,7 +170,7 @@ class Appointment(db.Model):
     __tablename__ = "appointment"
 
     __table_args__ = (
-        db.UniqueConstraint('doctor_id', 'date', name='uq_appointment_doctor_date'),
+        db.UniqueConstraint("doctor_id", "date", name="uq_appointment_doctor_date"),
     )
 
     id = db.Column(db.Integer, primary_key=True)
@@ -173,20 +179,18 @@ class Appointment(db.Model):
 
     date = db.Column(db.DateTime, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-
-    status = db.Column(Enum(AppointmentStatusEnum, name="appointment_status_enum"),
-                       nullable=False,
-                       default=AppointmentStatusEnum.SCHEDULED)
-
-    patient = db.relationship(
-        "Patient",
-        back_populates="appointments"
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
-    doctor = db.relationship(
-        "Doctor",
-        back_populates="appointments"
+
+    status = db.Column(
+        Enum(AppointmentStatusEnum, name="appointment_status_enum"),
+        nullable=False,
+        default=AppointmentStatusEnum.SCHEDULED,
     )
+
+    patient = db.relationship("Patient", back_populates="appointments")
+    doctor = db.relationship("Doctor", back_populates="appointments")
 
     def __repr__(self):
         return f"<Appointment id={self.id} on {self.date:%Y-%m-%d %H:%M}>"
@@ -196,15 +200,14 @@ class DemographicInfo(db.Model):
     __tablename__ = "demographic_info"
 
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"), nullable=False, unique=True)
+    patient_id = db.Column(
+        db.Integer, db.ForeignKey("patient.id"), nullable=False, unique=True
+    )
     address = db.Column(db.String(200))
     phone_number = db.Column(db.String(20), nullable=True)
     emergency_contact = db.Column(db.String(100))
 
-    patient = db.relationship(
-        "Patient",
-        back_populates="demographic_info"
-        )
+    patient = db.relationship("Patient", back_populates="demographic_info")
 
     def __repr__(self):
         return f"<DemographicInfo patient_id={self.patient_id}>"
@@ -214,17 +217,18 @@ class SocialHistory(db.Model):
     __tablename__ = "social_history"
 
     id = db.Column(db.Integer, primary_key=True)
-    patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"), nullable=False, unique=True)
-    smoking_status = db.Column(db.String(50))  # Keep as string for now to match existing database
+    patient_id = db.Column(
+        db.Integer, db.ForeignKey("patient.id"), nullable=False, unique=True
+    )
+    smoking_status = db.Column(
+        db.String(50)
+    )  # Keep as string for now to match existing database
     # smoking_units = db.Column(db.String(50))  # Commented out until database migration is complete
     alcohol_use = db.Column(db.String(50))
     drug_use = db.Column(db.String(50))
     occupation = db.Column(db.String(100))
 
-    patient = db.relationship(
-        "Patient",
-        back_populates="social_history"
-        )
+    patient = db.relationship("Patient", back_populates="social_history")
 
     def __repr__(self):
         return f"<SocialHistory patient_id={self.patient_id}>"
@@ -240,15 +244,9 @@ class MedicalHistory(db.Model):
     description = db.Column(db.Text, nullable=False)
     date = db.Column(db.DateTime, nullable=False, index=True)
 
-    patient = db.relationship(
-        "Patient",
-        back_populates="medical_histories"
-        )
+    patient = db.relationship("Patient", back_populates="medical_histories")
 
-    allergy = db.relationship(
-        "Allergy",
-        back_populates="medical_histories"
-        )
+    allergy = db.relationship("Allergy", back_populates="medical_histories")
 
     def __repr__(self):
         return f"<MedicalHistory id={self.id} date={self.date:%Y-%m-%d}>"
@@ -281,13 +279,29 @@ class LaboratoryResult(db.Model):
     result = db.Column(db.String(200), nullable=False)
     date = db.Column(db.DateTime, nullable=False, index=True)
 
-    patient = db.relationship(
-        "Patient",
-        back_populates="laboratory_results"
-        )
+    patient = db.relationship("Patient", back_populates="laboratory_results")
 
     def __repr__(self):
         return f"<LabResult id={self.id} test={self.test_name}>"
+
+
+class RadiologyImaging(db.Model):
+    __tablename__ = "radiology_imaging"
+
+    id = db.Column(db.Integer, primary_key=True)
+    patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.DateTime, nullable=False, index=True)
+    image_filename = db.Column(db.String(255), nullable=True)  # Store uploaded image filename
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+    patient = db.relationship("Patient", back_populates="radiology_imaging")
+
+    def __repr__(self):
+        return f"<RadiologyImaging id={self.id} name={self.name}>"
 
 
 class Prescription(db.Model):
@@ -301,10 +315,7 @@ class Prescription(db.Model):
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime)
 
-    patient = db.relationship(
-        "Patient",
-        back_populates="prescriptions"
-        )
+    patient = db.relationship("Patient", back_populates="prescriptions")
 
     def __repr__(self):
         return f"<Prescription id={self.id} {self.medication_name}>"

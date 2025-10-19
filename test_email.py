@@ -20,9 +20,9 @@ def test_email_functionality():
         # Test 1: Check if mail configuration is loaded
         print("\n1. Checking mail configuration...")
         try:
-            mail_server = app.config.get('MAIL_SERVER')
-            mail_port = app.config.get('MAIL_PORT')
-            mail_username = app.config.get('MAIL_USERNAME')
+            mail_server = app.config.get("MAIL_SERVER")
+            mail_port = app.config.get("MAIL_PORT")
+            mail_username = app.config.get("MAIL_USERNAME")
 
             print(f"   Mail Server: {mail_server}")
             print(f"   Mail Port: {mail_port}")
@@ -85,13 +85,16 @@ def test_email_functionality():
         # Test 4: Check mail configuration values
         print("\n4. Mail configuration details:")
         config_keys = [
-            'MAIL_SERVER', 'MAIL_PORT', 'MAIL_USE_TLS', 
-            'MAIL_USERNAME', 'MAIL_DEFAULT_SENDER'
+            "MAIL_SERVER",
+            "MAIL_PORT",
+            "MAIL_USE_TLS",
+            "MAIL_USERNAME",
+            "MAIL_DEFAULT_SENDER",
         ]
 
         for key in config_keys:
             value = app.config.get(key)
-            if key == 'MAIL_PASSWORD':
+            if key == "MAIL_PASSWORD":
                 value = "***" if value else None
             print(f"   {key}: {value}")
 

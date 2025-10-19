@@ -13,41 +13,43 @@ import sys
 
 def send_actual_test_email():
     """Send a real test email to verify email functionality"""
-    
+
     with app.app_context():
         print("🔥 REAL EMAIL SENDING TEST")
         print("=" * 50)
-        
+
         # Check configuration first
-        mail_server = app.config.get('MAIL_SERVER')
-        mail_username = app.config.get('MAIL_USERNAME') 
-        mail_password = app.config.get('MAIL_PASSWORD')
-        
+        mail_server = app.config.get("MAIL_SERVER")
+        mail_username = app.config.get("MAIL_USERNAME")
+        mail_password = app.config.get("MAIL_PASSWORD")
+
         print(f"Mail Server: {mail_server}")
         print(f"Mail Username: {mail_username}")
         print(f"Mail Password: {'***SET***' if mail_password else '***NOT SET***'}")
-        
+
         # Check if configuration is complete
         if not all([mail_server, mail_username, mail_password]):
             print("\n❌ EMAIL CONFIGURATION INCOMPLETE!")
             print("Please update config.py with your actual email credentials:")
             print("- MAIL_USERNAME: your Gmail address")
-            print("- MAIL_PASSWORD: your Gmail app password") 
+            print("- MAIL_PASSWORD: your Gmail app password")
             print("- MAIL_DEFAULT_SENDER: your email info")
             return False
-            
+
         # Ask for recipient email
         print(f"\n📧 Ready to send test email from: {mail_username}")
-        recipient = input("Enter recipient email address (or press Enter to use sender): ").strip()
-        
+        recipient = input(
+            "Enter recipient email address (or press Enter to use sender): "
+        ).strip()
+
         if not recipient:
             recipient = mail_username
-            
+
         print(f"📤 Sending test email to: {recipient}")
-        
+
         # Create test email content
         test_token = generate_token(999, "test")
-        
+
         html_content = f"""
         <html>
         <head>
@@ -101,22 +103,22 @@ def send_actual_test_email():
         </body>
         </html>
         """
-        
+
         try:
             print("\n🔄 Attempting to send email...")
-            
+
             # Actually send the email using the real send_email function
             send_email(
                 subject="🏥 EHR System - Email Test Successful!",
                 recipients=[recipient],
-                html=html_content
+                html=html_content,
             )
-            
+
             print("✅ EMAIL SENT SUCCESSFULLY!")
             print(f"📬 Check your inbox at: {recipient}")
             print("\n🎉 Your EHR email system is fully functional!")
             return True
-            
+
         except Exception as e:
             print(f"\n❌ EMAIL SENDING FAILED!")
             print(f"Error: {str(e)}")
@@ -137,13 +139,13 @@ def show_email_setup_instructions():
     print('   MAIL_USERNAME = "your-email@gmail.com"')
     print('   MAIL_PASSWORD = "your-16-digit-app-password"')
     print('   MAIL_DEFAULT_SENDER = ("EHR System", "your-email@gmail.com")')
-    
+
     print("\n2. 📱 Gmail App Password Setup:")
     print("   • Go to Google Account Settings")
     print("   • Security → 2-Step Verification")
     print("   • App Passwords → Mail → Generate")
     print("   • Use the 16-digit password in MAIL_PASSWORD")
-    
+
     print("\n3. 🧪 Test the email system:")
     print("   python send_real_email_test.py")
 
@@ -151,13 +153,15 @@ def show_email_setup_instructions():
 if __name__ == "__main__":
     print("🚀 EHR System - Real Email Sending Test")
     print("This script will actually send a test email!\n")
-    
-    choice = input("Do you want to:\n1. Send test email\n2. Show setup instructions\nChoice (1/2): ").strip()
-    
+
+    choice = input(
+        "Do you want to:\n1. Send test email\n2. Show setup instructions\nChoice (1/2): "
+    ).strip()
+
     if choice == "2":
         show_email_setup_instructions()
     else:
         success = send_actual_test_email()
-        
+
         if not success:
             print("\n💡 Need help? Run with option 2 for setup instructions.")

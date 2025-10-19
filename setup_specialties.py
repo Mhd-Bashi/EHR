@@ -16,7 +16,7 @@ def setup_default_specialties():
         "Neurology",
         "Pediatrics",
         "Radiology",
-        "Other"
+        "Other",
     ]
 
     with app.app_context():

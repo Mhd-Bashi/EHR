@@ -629,6 +629,10 @@
                                            class="btn btn-outline-info btn-sm" title="Add Medical History">
                                             <i class="fas fa-notes-medical"></i>
                                         </a>
+                                        <a href="{{ url_for('add_radiology_imaging') }}?patient_id={{ patient.id }}" 
+                                           class="btn btn-outline-secondary btn-sm" title="Add Radiology Record">
+                                            <i class="fas fa-x-ray"></i>
+                                        </a>
                                     </div>
                                 </td>
                                 <td class="management-cell">

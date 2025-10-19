@@ -34,7 +34,7 @@
         }
         
         .nav-container {
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 0 auto;
             padding: 0 20px;
             display: flex;
@@ -121,21 +121,130 @@
             display: flex;
             align-items: center;
             color: white;
+            position: relative;
         }
         
-        .nav-user .user-info {
+        .user-dropdown {
+            position: relative;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .user-dropdown:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .user-info {
             margin-right: 15px;
             text-align: right;
+            transition: all 0.3s ease;
+            pointer-events: none; /* Prevent text selection interference */
         }
         
-        .nav-user .user-name {
+        .user-name {
             font-weight: 600;
             font-size: 0.9rem;
+            display: flex;
+            align-items: center;
         }
         
-        .nav-user .user-role {
+        .user-name::after {
+            content: '▼';
+            margin-left: 6px;
+            font-size: 0.7rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .user-dropdown:hover .user-name::after {
+            transform: rotate(180deg);
+        }
+        
+        .user-role {
             font-size: 0.75rem;
             opacity: 0.8;
+        }
+        
+        .user-dropdown:hover .user-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 5px 10px;
+            margin-right: 10px;
+        }
+        
+        /* Dropdown Menu */
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            padding: 8px 0;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 9999;
+            margin-top: 10px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Ensure hover area includes dropdown */
+        .user-dropdown:hover .dropdown-menu,
+        .dropdown-menu:hover {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        /* Add hover bridge to prevent dropdown from disappearing */
+        .user-dropdown::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 100%;
+            height: 10px;
+            background: transparent;
+            z-index: 9998;
+        }
+        
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            background: none;
+            width: 100%;
+            cursor: pointer;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .dropdown-item i {
+            width: 20px;
+            margin-right: 12px;
+            text-align: center;
+        }
+        
+        .dropdown-divider {
+            height: 1px;
+            background-color: #e9ecef;
+            margin: 8px 0;
         }
         
         .logout-btn {
@@ -397,6 +506,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ url_for('view_radiology_imaging') }}" 
+                       class="nav-link {% if request.endpoint in ['view_radiology_imaging', 'add_radiology_imaging', 'edit_radiology_imaging'] %}active{% endif %}">
+                        Radiology Imaging
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ url_for('view_appointments') }}" 
                        class="nav-link {% if request.endpoint == 'view_appointments' %}active{% endif %}">
                         Appointments
@@ -412,11 +527,23 @@
             
             <div class="nav-user">
                 {% if session.logged_in %}
-                    <div class="user-info">
-                        <div class="user-name">{{ session.doctor_name or 'Doctor' }}</div>
-                        <div class="user-role">Physician</div>
+                    <div class="user-dropdown">
+                        <div class="user-info">
+                            <div class="user-name">{{ session.doctor_name or 'Doctor' }}</div>
+                            <div class="user-role">Physician</div>
+                        </div>
+                        <div class="dropdown-menu">
+                            <a href="{{ url_for('doctor_profile') }}" class="dropdown-item">
+                                <i class="fas fa-user"></i>
+                                Profile
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('logout') }}" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </a>
+                        </div>
                     </div>
-                    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
                 {% else %}
                     <a href="{{ url_for('login') }}" class="logout-btn">Login</a>
                 {% endif %}
@@ -471,6 +598,48 @@
             
             if (!navMenu.contains(event.target) && !mobileBtn.contains(event.target)) {
                 navMenu.classList.remove('active');
+            }
+        });
+        
+        // Enhanced dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const userDropdown = document.querySelector('.user-dropdown');
+            const dropdownMenu = document.querySelector('.dropdown-menu');
+            
+            if (userDropdown && dropdownMenu) {
+                // Add click functionality for mobile/touch devices
+                userDropdown.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Toggle dropdown visibility
+                    if (dropdownMenu.style.opacity === '1' || dropdownMenu.classList.contains('show')) {
+                        dropdownMenu.style.opacity = '0';
+                        dropdownMenu.style.visibility = 'hidden';
+                        dropdownMenu.style.transform = 'translateY(-10px)';
+                        dropdownMenu.classList.remove('show');
+                    } else {
+                        dropdownMenu.style.opacity = '1';
+                        dropdownMenu.style.visibility = 'visible';
+                        dropdownMenu.style.transform = 'translateY(0)';
+                        dropdownMenu.classList.add('show');
+                    }
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!userDropdown.contains(e.target)) {
+                        dropdownMenu.style.opacity = '0';
+                        dropdownMenu.style.visibility = 'hidden';
+                        dropdownMenu.style.transform = 'translateY(-10px)';
+                        dropdownMenu.classList.remove('show');
+                    }
+                });
+                
+                // Prevent dropdown from closing when clicking inside it
+                dropdownMenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
             }
         });
         

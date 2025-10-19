@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Add Radiology Imaging{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto; padding: 20px; font-family: 'Arial', sans-serif;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 40px 20px; border-radius: 15px; margin-bottom: 30px; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+        <h1 style="margin: 0; font-size: 2.5em; font-weight: 300; letter-spacing: 2px;">Add Radiology Imaging</h1>
+        <p style="margin: 10px 0 0 0; font-size: 1.1em; opacity: 0.9;">Record new radiology imaging for patient</p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" style="background: white; padding: 40px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); border: 1px solid #f0f0f0;">
+        <div style="margin-bottom: 25px;">
+            <label for="patient_id" style="display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 1.1em;">Select Patient:</label>
+            <select name="patient_id" id="patient_id" required style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; background: white; transition: all 0.3s ease; box-sizing: border-box;">
+                <option value="">Choose a patient...</option>
+                {% for patient in patients %}
+                <option value="{{ patient.id }}" {% if selected_patient_id and selected_patient_id|string == patient.id|string %}selected{% endif %}>{{ patient.first_name }} {{ patient.last_name }} (ID: {{ patient.id }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label for="imaging_name" style="display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 1.1em;">Imaging Name:</label>
+            <input type="text" name="imaging_name" id="imaging_name" required 
+                   placeholder="e.g., Chest X-Ray, CT Scan, MRI Brain..."
+                   style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label for="imaging_date" style="display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 1.1em;">Imaging Date & Time:</label>
+            <input type="datetime-local" name="imaging_date" id="imaging_date" required 
+                   style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 30px;">
+            <label for="image_file" style="display: block; margin-bottom: 8px; color: #333; font-weight: 600; font-size: 1.1em;">Upload Image (Optional):</label>
+            <div style="position: relative; display: inline-block; width: 100%;">
+                <input type="file" name="image_file" id="image_file" 
+                       accept=".png,.jpg,.jpeg,.gif,.bmp,.tiff,.dcm,.dicom"
+                       style="width: 100%; padding: 15px; border: 2px dashed #e1e5e9; border-radius: 10px; font-size: 16px; transition: all 0.3s ease; box-sizing: border-box; background: #f8f9fa;">
+            </div>
+            <div style="margin-top: 8px; color: #6c757d; font-size: 0.9em;">
+                Supported formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM (Max: 10MB)
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; justify-content: center;">
+            <button type="submit" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border: none; border-radius: 25px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); min-width: 150px;">
+                Add Imaging Record
+            </button>
+            <a href="{{ url_for('view_radiology_imaging') }}" style="background: #6c757d; color: white; padding: 15px 30px; border: none; border-radius: 25px; font-size: 16px; font-weight: 600; text-decoration: none; display: inline-block; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4); min-width: 150px; text-align: center; box-sizing: border-box;">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Focus effects for form elements */
+    select:focus, input:focus {
+        border-color: #667eea !important;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+        outline: none !important;
+    }
+
+    /* Hover effects for buttons */
+    button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6) !important;
+    }
+
+    a:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(108, 117, 125, 0.6) !important;
+    }
+
+    /* Select dropdown styling */
+    select {
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 20px;
+        padding-right: 40px;
+    }
+
+    /* Responsive design */
+    @media (max-width: 600px) {
+        div[style*="max-width: 800px"] {
+            padding: 10px !important;
+        }
+        
+        form {
+            padding: 20px !important;
+        }
+        
+        div[style*="display: flex"] {
+            flex-direction: column !important;
+        }
+        
+        button, a {
+            width: 100% !important;
+            margin-bottom: 10px !important;
+        }
+    }
+</style>
+{% endblock %}

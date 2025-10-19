@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - EHR System{% endblock %}
+
+{% block content %}
+<div style="background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: calc(100vh - 70px); padding: 30px 20px;">
+    <div style="max-width: 700px; margin: 0 auto;">
+        
+        <!-- Back Link -->
+        <a href="{{ url_for('doctor_profile') }}" style="color: #667eea; text-decoration: none; font-weight: 600; margin-bottom: 30px; display: inline-flex; align-items: center; background: white; padding: 12px 20px; border-radius: 25px; box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1); transition: all 0.3s ease;">
+            <i class="fas fa-arrow-left" style="margin-right: 10px;"></i>
+            Back to Profile
+        </a>
+
+        <!-- Edit Profile Card -->
+        <div style="background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15); overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.8); margin-top: 20px;">
+            
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px; text-align: center; position: relative; overflow: hidden;">
+                
+                <!-- Profile Icon -->
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2rem; color: white;">
+                    <i class="fas fa-user-edit"></i>
+                </div>
+                
+                <h1 style="font-size: 2.2rem; font-weight: 700; margin: 0 0 10px 0;">Edit Profile</h1>
+                <p style="font-size: 1.1rem; opacity: 0.9; margin: 0;">Update your professional information and contact details</p>
+            </div>
+
+            <!-- Form Content -->
+            <div style="padding: 40px;">
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            {% if category == 'success' %}
+                                <div style="padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; border: none; font-weight: 500; color: #155724; background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%); box-shadow: 0 4px 15px rgba(21, 87, 36, 0.1);">
+                                    {{ message }}
+                                </div>
+                            {% else %}
+                                <div style="padding: 15px 20px; border-radius: 12px; margin-bottom: 25px; border: none; font-weight: 500; color: #721c24; background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%); box-shadow: 0 4px 15px rgba(114, 28, 36, 0.1);">
+                                    {{ message }}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Form -->
+                <form method="POST" action="{{ url_for('edit_doctor_profile') }}">
+                    
+                    <!-- First Name -->
+                    <div style="margin-bottom: 30px;">
+                        <label for="first_name" style="display: flex; align-items: center; margin-bottom: 10px; font-weight: 600; color: #2c3e50; font-size: 0.95rem;">
+                            <i class="fas fa-user" style="width: 20px; margin-right: 10px; color: #667eea;"></i>
+                            First Name
+                        </label>
+                        <div style="position: relative;">
+                            <input 
+                                type="text" 
+                                id="first_name" 
+                                name="first_name" 
+                                value="{{ doctor.first_name or '' }}"
+                                placeholder="Enter your first name"
+                                style="width: 100%; padding: 16px 20px; border: 2px solid #e9ecef; border-radius: 15px; font-size: 1rem; background: #f8f9fa; transition: all 0.3s ease; box-sizing: border-box;"
+                                onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 4px rgba(102, 126, 234, 0.1)'; this.style.background='white'; this.style.transform='translateY(-2px)';"
+                                onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'; this.style.background='#f8f9fa'; this.style.transform='translateY(0)';"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Last Name -->
+                    <div style="margin-bottom: 30px;">
+                        <label for="last_name" style="display: flex; align-items: center; margin-bottom: 10px; font-weight: 600; color: #2c3e50; font-size: 0.95rem;">
+                            <i class="fas fa-user" style="width: 20px; margin-right: 10px; color: #667eea;"></i>
+                            Last Name <span style="color: #dc3545; font-weight: 700;">*</span>
+                        </label>
+                        <div style="position: relative;">
+                            <input 
+                                type="text" 
+                                id="last_name" 
+                                name="last_name" 
+                                value="{{ doctor.last_name }}"
+                                placeholder="Enter your last name"
+                                required
+                                style="width: 100%; padding: 16px 20px; border: 2px solid #e9ecef; border-radius: 15px; font-size: 1rem; background: #f8f9fa; transition: all 0.3s ease; box-sizing: border-box;"
+                                onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 4px rgba(102, 126, 234, 0.1)'; this.style.background='white'; this.style.transform='translateY(-2px)';"
+                                onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'; this.style.background='#f8f9fa'; this.style.transform='translateY(0)';"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div style="margin-bottom: 30px;">
+                        <label for="email" style="display: flex; align-items: center; margin-bottom: 10px; font-weight: 600; color: #2c3e50; font-size: 0.95rem;">
+                            <i class="fas fa-envelope" style="width: 20px; margin-right: 10px; color: #667eea;"></i>
+                            Email Address <span style="color: #dc3545; font-weight: 700;">*</span>
+                        </label>
+                        <div style="position: relative;">
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                value="{{ doctor.email }}"
+                                placeholder="Enter your email address"
+                                required
+                                style="width: 100%; padding: 16px 20px; border: 2px solid #e9ecef; border-radius: 15px; font-size: 1rem; background: #f8f9fa; transition: all 0.3s ease; box-sizing: border-box;"
+                                onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 4px rgba(102, 126, 234, 0.1)'; this.style.background='white'; this.style.transform='translateY(-2px)';"
+                                onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'; this.style.background='#f8f9fa'; this.style.transform='translateY(0)';"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Phone Number -->
+                    <div style="margin-bottom: 30px;">
+                        <label for="phone_number" style="display: flex; align-items: center; margin-bottom: 10px; font-weight: 600; color: #2c3e50; font-size: 0.95rem;">
+                            <i class="fas fa-phone" style="width: 20px; margin-right: 10px; color: #667eea;"></i>
+                            Phone Number
+                        </label>
+                        <div style="position: relative;">
+                            <input 
+                                type="tel" 
+                                id="phone_number" 
+                                name="phone_number" 
+                                value="{{ doctor.phone_number or '' }}"
+                                placeholder="Enter your phone number (optional)"
+                                style="width: 100%; padding: 16px 20px; border: 2px solid #e9ecef; border-radius: 15px; font-size: 1rem; background: #f8f9fa; transition: all 0.3s ease; box-sizing: border-box;"
+                                onfocus="this.style.borderColor='#667eea'; this.style.boxShadow='0 0 0 4px rgba(102, 126, 234, 0.1)'; this.style.background='white'; this.style.transform='translateY(-2px)';"
+                                onblur="this.style.borderColor='#e9ecef'; this.style.boxShadow='none'; this.style.background='#f8f9fa'; this.style.transform='translateY(0)';"
+                            >
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div style="display: flex; gap: 20px; justify-content: center; margin-top: 40px; padding-top: 30px; border-top: 1px solid #e9ecef;">
+                        <button type="submit" style="padding: 16px 35px; border: none; border-radius: 30px; font-weight: 600; font-size: 1rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3); cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 35px rgba(102, 126, 234, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.3)';">
+                            <i class="fas fa-save" style="margin-right: 10px;"></i>
+                            Save Changes
+                        </button>
+                        
+                        <a href="{{ url_for('doctor_profile') }}" style="padding: 16px 35px; border: 2px solid #667eea; border-radius: 30px; font-weight: 600; font-size: 1rem; background: white; color: #667eea; box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1); text-decoration: none; transition: all 0.3s ease; display: inline-flex; align-items: center;" onmouseover="this.style.background='#667eea'; this.style.color='white'; this.style.transform='translateY(-3px)'; this.style.boxShadow='0 12px 35px rgba(102, 126, 234, 0.3)';" onmouseout="this.style.background='white'; this.style.color='#667eea'; this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 25px rgba(102, 126, 234, 0.1)';">
+                            <i class="fas fa-times" style="margin-right: 10px;"></i>
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Responsive Styles -->
+<style>
+    @media (max-width: 768px) {
+        div[style*="display: flex; gap: 20px"] {
+            flex-direction: column !important;
+            gap: 15px !important;
+        }
+        
+        button[style*="padding: 16px 35px"],
+        a[style*="padding: 16px 35px"] {
+            justify-content: center !important;
+            text-align: center !important;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form validation
+    const form = document.querySelector('form');
+    const lastNameInput = document.getElementById('last_name');
+    const emailInput = document.getElementById('email');
+
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Check last name
+        if (!lastNameInput.value.trim()) {
+            isValid = false;
+            lastNameInput.style.borderColor = '#dc3545';
+            lastNameInput.style.boxShadow = '0 0 0 4px rgba(220, 53, 69, 0.1)';
+        }
+        
+        // Check email
+        if (!emailInput.value.trim() || !isValidEmail(emailInput.value)) {
+            isValid = false;
+            emailInput.style.borderColor = '#dc3545';
+            emailInput.style.boxShadow = '0 0 0 4px rgba(220, 53, 69, 0.1)';
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields with valid information.');
+        }
+    });
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile - EHR System{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%) !important;
+        min-height: 100vh !important;
+    }
+
+    .edit-profile-container {
+        max-width: 700px !important;
+        margin: 0 auto !important;
+        padding: 30px 20px !important;
+    }
+
+    .edit-profile-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(102, 126, 234, 0.15);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(10px);
+    }
+
+    .edit-profile-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .edit-profile-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+        transform: rotate(45deg);
+        animation: shimmer 4s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+    }
+
+    .profile-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        font-size: 2rem;
+        color: white;
+        position: relative;
+        z-index: 1;
+    }
+
+    .edit-profile-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .edit-profile-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        position: relative;
+        z-index: 1;
+    }
+
+    .form-content {
+        padding: 40px;
+    }
+
+    .form-group {
+        margin-bottom: 30px;
+        position: relative;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-label i {
+        width: 20px;
+        margin-right: 10px;
+        color: #667eea;
+    }
+
+    .input-wrapper {
+        position: relative;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 16px 20px;
+        border: 2px solid #e9ecef;
+        border-radius: 15px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f8f9fa;
+        position: relative;
+        z-index: 1;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        background: white;
+        transform: translateY(-2px);
+    }
+
+    .form-control:hover {
+        border-color: #667eea;
+        background: white;
+        transform: translateY(-1px);
+    }
+
+    .form-control::placeholder {
+        color: #adb5bd;
+        font-style: italic;
+    }
+
+    .required {
+        color: #dc3545;
+        font-weight: 700;
+    }
+
+    .input-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #667eea;
+        pointer-events: none;
+        z-index: 2;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus + .input-icon,
+    .form-control:not(:placeholder-shown) + .input-icon {
+        opacity: 1;
+    }
+
+    .btn-container {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid #e9ecef;
+    }
+
+    .btn-modern {
+        padding: 16px 35px;
+        border: none;
+        border-radius: 30px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        font-size: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-modern::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        transition: all 0.5s ease;
+        transform: translate(-50%, -50%);
+    }
+
+    .btn-modern:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+
+    .btn-primary-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary-modern:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary-modern {
+        background: white;
+        color: #667eea;
+        border: 2px solid #667eea;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn-secondary-modern:hover {
+        background: #667eea;
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.3);
+        text-decoration: none;
+    }
+
+    .btn-modern i {
+        margin-right: 10px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .btn-text {
+        position: relative;
+        z-index: 1;
+    }
+
+    .back-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        margin-bottom: 30px;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.3s ease;
+        background: white;
+        padding: 12px 20px;
+        border-radius: 25px;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+    }
+
+    .back-link:hover {
+        color: white;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: translateX(-5px);
+        text-decoration: none;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .back-link i {
+        margin-right: 10px;
+        transition: all 0.3s ease;
+    }
+
+    .back-link:hover i {
+        transform: translateX(-3px);
+    }
+
+    .alert {
+        padding: 15px 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        border: none;
+        font-weight: 500;
+        animation: slideIn 0.3s ease;
+    }
+
+    .alert-success {
+        color: #155724;
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        box-shadow: 0 4px 15px rgba(21, 87, 36, 0.1);
+    }
+
+    .alert-error {
+        color: #721c24;
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        box-shadow: 0 4px 15px rgba(114, 28, 36, 0.1);
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .form-group {
+        animation: fadeInUp 0.6s ease forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    .form-group:nth-child(1) { animation-delay: 0.1s; }
+    .form-group:nth-child(2) { animation-delay: 0.2s; }
+    .form-group:nth-child(3) { animation-delay: 0.3s; }
+    .form-group:nth-child(4) { animation-delay: 0.4s; }
+
+    @keyframes fadeInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .edit-profile-container {
+            padding: 20px 15px;
+        }
+        
+        .edit-profile-header {
+            padding: 30px 25px;
+        }
+        
+        .form-content {
+            padding: 30px 25px;
+        }
+        
+        .btn-container {
+            flex-direction: column;
+        }
+        
+        .btn-modern {
+            justify-content: center;
+        }
+        
+        .edit-profile-title {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-profile-container">
+    <a href="{{ url_for('doctor_profile') }}" class="back-link">
+        <i class="fas fa-arrow-left"></i>
+        Back to Profile
+    </a>
+
+    <div class="edit-profile-card">
+        <div class="edit-profile-header">
+            <div class="profile-icon">
+                <i class="fas fa-user-edit"></i>
+            </div>
+            <div class="edit-profile-title">Edit Profile</div>
+            <div class="edit-profile-subtitle">Update your professional information and contact details</div>
+        </div>
+
+        <div class="form-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'success' if category == 'success' else 'error' }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('edit_doctor_profile') }}">
+                <div class="form-group">
+                    <label for="first_name" class="form-label">
+                        <i class="fas fa-user"></i> First Name
+                    </label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="first_name" 
+                            name="first_name" 
+                            class="form-control"
+                            value="{{ doctor.first_name or '' }}"
+                            placeholder="Enter your first name"
+                        >
+                        <i class="fas fa-check input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="last_name" class="form-label">
+                        <i class="fas fa-user"></i> Last Name <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="last_name" 
+                            name="last_name" 
+                            class="form-control"
+                            value="{{ doctor.last_name }}"
+                            placeholder="Enter your last name"
+                            required
+                        >
+                        <i class="fas fa-check input-icon"></i>
+                    </div>
+            </div>
+
+                <div class="form-group">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope"></i> Email Address <span class="required">*</span>
+                    </label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            class="form-control"
+                            value="{{ doctor.email }}"
+                            placeholder="Enter your email address"
+                            required
+                        >
+                        <i class="fas fa-check input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone_number" class="form-label">
+                        <i class="fas fa-phone"></i> Phone Number
+                    </label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="tel" 
+                            id="phone_number" 
+                            name="phone_number" 
+                            class="form-control"
+                            value="{{ doctor.phone_number or '' }}"
+                            placeholder="Enter your phone number (optional)"
+                        >
+                        <i class="fas fa-check input-icon"></i>
+                    </div>
+                </div>
+
+                <div class="btn-container">
+                    <button type="submit" class="btn-modern btn-primary-modern">
+                        <i class="fas fa-save"></i>
+                        <span class="btn-text">Save Changes</span>
+                    </button>
+                    <a href="{{ url_for('doctor_profile') }}" class="btn-modern btn-secondary-modern">
+                        <i class="fas fa-times"></i>
+                        <span class="btn-text">Cancel</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add form validation
+    const form = document.querySelector('form');
+    const lastNameInput = document.getElementById('last_name');
+    const emailInput = document.getElementById('email');
+
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        // Check last name
+        if (!lastNameInput.value.trim()) {
+            isValid = false;
+            lastNameInput.style.borderColor = '#dc3545';
+        } else {
+            lastNameInput.style.borderColor = '#e9ecef';
+        }
+        
+        // Check email
+        if (!emailInput.value.trim() || !isValidEmail(emailInput.value)) {
+            isValid = false;
+            emailInput.style.borderColor = '#dc3545';
+        } else {
+            emailInput.style.borderColor = '#e9ecef';
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields with valid information.');
+        }
+    });
+
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+});
+</script>
+{% endblock %}

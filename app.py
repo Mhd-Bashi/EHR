@@ -1,12 +1,16 @@
 from flask import Flask, request, redirect, url_for, flash, render_template, session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime, date
+import os
+import uuid
 from config import Config
 from models import (
     db,
     Doctor,
     Specialty,
     LaboratoryResult,
+    RadiologyImaging,
     Appointment,
     Patient,
     DemographicInfo,
@@ -26,6 +30,65 @@ app.config.from_object(Config)
 # Initialize extensions
 db.init_app(app)
 init_mail(app)
+
+# File upload configuration
+UPLOAD_FOLDER = 'static/uploads/radiology'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'dcm', 'dicom'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+
+
+def allowed_file(filename):
+    """Check if file extension is allowed"""
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def generate_unique_filename(filename):
+    """Generate unique filename to prevent conflicts"""
+    if filename == '':
+        return None
+    
+    # Get file extension
+    file_ext = ''
+    if '.' in filename:
+        file_ext = '.' + filename.rsplit('.', 1)[1].lower()
+    
+    # Generate unique filename using UUID
+    unique_filename = str(uuid.uuid4()) + file_ext
+    return unique_filename
+
+
+def save_uploaded_file(file, patient_id):
+    """Save uploaded file and return filename"""
+    if file and allowed_file(file.filename):
+        # Generate unique filename
+        filename = generate_unique_filename(file.filename)
+        if filename:
+            # Create patient-specific subdirectory
+            patient_dir = os.path.join(app.config['UPLOAD_FOLDER'], f'patient_{patient_id}')
+            os.makedirs(patient_dir, exist_ok=True)
+            
+            # Save file
+            filepath = os.path.join(patient_dir, filename)
+            file.save(filepath)
+            return f'patient_{patient_id}/{filename}'
+    return None
+
+
+def delete_image_file(image_filename):
+    """Delete image file from filesystem"""
+    if image_filename:
+        try:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                return True
+        except Exception as e:
+            print(f"Error deleting file: {e}")
+    return False
 
 
 def validate_email(email):
@@ -247,11 +310,11 @@ def dashboard():
         # First check if both tables exist and have the right schema
         inspector = db.inspect(db.engine)
         tables = inspector.get_table_names()
-        
-        if 'laboratory_result' in tables and 'patient' in tables:
+
+        if "laboratory_result" in tables and "patient" in tables:
             # Check if patient table has email column
-            patient_columns = [col['name'] for col in inspector.get_columns('patient')]
-            if 'email' in patient_columns:
+            patient_columns = [col["name"] for col in inspector.get_columns("patient")]
+            if "email" in patient_columns:
                 lab_results = (
                     db.session.query(LaboratoryResult, Patient)
                     .join(Patient, LaboratoryResult.patient_id == Patient.id)
@@ -366,12 +429,16 @@ def add_patient():
                 db.session.add(demographic_info)
 
             # Add social history if provided
-            smoking_status = "yes" if request.form.get("smoking_status") == "1" else "no"
-            smoking_units = request.form.get("smoking_units", "").strip()  # Store for future use
+            smoking_status = (
+                "yes" if request.form.get("smoking_status") == "1" else "no"
+            )
+            smoking_units = request.form.get(
+                "smoking_units", ""
+            ).strip()  # Store for future use
             alcohol_use = request.form.get("alcohol_use", "").strip()
             drug_use = request.form.get("drug_use", "").strip()
             occupation = request.form.get("occupation", "").strip()
-            
+
             if smoking_status != "no" or alcohol_use or drug_use or occupation:
                 try:
                     # Create social history - smoking_status as string for compatibility
@@ -785,34 +852,43 @@ def add_medical_history():
     patients = (
         Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
     )
-    
+
     allergies = Allergy.query.order_by(Allergy.name).all()
-    
+
     # If no allergies exist, create common ones
     if not allergies:
         try:
             common_allergies = [
-                ("Penicillin", "Antibiotic allergy - can cause rash, hives, or anaphylaxis"),
-                ("Peanuts", "Food allergy - can cause severe reactions, requires avoidance"),
+                (
+                    "Penicillin",
+                    "Antibiotic allergy - can cause rash, hives, or anaphylaxis",
+                ),
+                (
+                    "Peanuts",
+                    "Food allergy - can cause severe reactions, requires avoidance",
+                ),
                 ("Shellfish", "Food allergy - can cause mild to severe reactions"),
                 ("Dust Mites", "Environmental allergy - causes respiratory symptoms"),
                 ("Pollen", "Seasonal allergy - causes hay fever symptoms"),
                 ("Latex", "Contact allergy - causes skin and systemic reactions"),
                 ("Sulfa Drugs", "Medication allergy - can cause skin rashes and fever"),
-                ("Aspirin", "Medication allergy - causes respiratory or skin reactions"),
+                (
+                    "Aspirin",
+                    "Medication allergy - causes respiratory or skin reactions",
+                ),
                 ("Eggs", "Food allergy - common in children, various symptoms"),
                 ("Dairy/Milk", "Food allergy - causes digestive and skin reactions"),
-                ("Other", "For allergies not listed above - specify in description")
+                ("Other", "For allergies not listed above - specify in description"),
             ]
-            
+
             for name, description in common_allergies:
                 allergy = Allergy(name=name, description=description)
                 db.session.add(allergy)
-            
+
             db.session.commit()
             allergies = Allergy.query.order_by(Allergy.name).all()
             flash("Common allergies have been added to the system.", "info")
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f"Error creating allergies: {str(e)}", "error")
@@ -1006,7 +1082,7 @@ def edit_appointment(appointment_id):
                     "edit_appointment.html",
                     appointment=appointment,
                     patients=patients,
-                    datetime=datetime
+                    datetime=datetime,
                 )
 
             # Create new appointment datetime
@@ -1016,13 +1092,18 @@ def edit_appointment(appointment_id):
 
             # Check for existing appointment at same time (excluding current appointment)
             existing_appointment = (
-                Appointment.query.filter_by(doctor_id=doctor_id, date=appointment_datetime)
+                Appointment.query.filter_by(
+                    doctor_id=doctor_id, date=appointment_datetime
+                )
                 .filter(Appointment.id != appointment_id)
                 .first()
             )
 
             if existing_appointment:
-                flash("You already have another appointment at this date and time.", "error")
+                flash(
+                    "You already have another appointment at this date and time.",
+                    "error",
+                )
                 patients = (
                     Patient.query.filter_by(doctor_id=doctor_id)
                     .order_by(Patient.last_name)
@@ -1032,7 +1113,7 @@ def edit_appointment(appointment_id):
                     "edit_appointment.html",
                     appointment=appointment,
                     patients=patients,
-                    datetime=datetime
+                    datetime=datetime,
                 )
 
             # Update appointment
@@ -1058,7 +1139,7 @@ def edit_appointment(appointment_id):
             "edit_appointment.html",
             appointment=appointment,
             patients=patients,
-            datetime=datetime
+            datetime=datetime,
         )
 
     except Exception as e:
@@ -1089,17 +1170,21 @@ def delete_appointment(appointment_id):
             return redirect(url_for("dashboard"))
 
         # Store patient name for flash message
-        patient_name = f"{appointment.patient.first_name} {appointment.patient.last_name}"
+        patient_name = (
+            f"{appointment.patient.first_name} {appointment.patient.last_name}"
+        )
 
         # Delete the appointment
         db.session.delete(appointment)
         db.session.commit()
 
-        flash(f"Appointment for {patient_name} has been deleted successfully.", "success")
-        
+        flash(
+            f"Appointment for {patient_name} has been deleted successfully.", "success"
+        )
+
         # Redirect based on source
-        source = request.form.get('source', '')
-        if source == 'dashboard':
+        source = request.form.get("source", "")
+        if source == "dashboard":
             return redirect(url_for("dashboard"))
         else:
             return redirect(url_for("view_appointments"))
@@ -1153,6 +1238,52 @@ def logout():
     session.clear()
     flash("You have been logged out successfully.", "info")
     return redirect(url_for("login"))
+
+
+@app.route("/doctor_profile")
+def doctor_profile():
+    if "logged_in" not in session:
+        return redirect(url_for("login"))
+    
+    doctor = Doctor.query.get(session["doctor_id"])
+    if not doctor:
+        flash("Doctor profile not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    return render_template("doctor_profile.html", doctor=doctor)
+
+
+@app.route("/edit_doctor_profile", methods=["GET", "POST"])
+def edit_doctor_profile():
+    if "logged_in" not in session:
+        return redirect(url_for("login"))
+    
+    doctor = Doctor.query.get(session["doctor_id"])
+    if not doctor:
+        flash("Doctor profile not found.", "error")
+        return redirect(url_for("dashboard"))
+    
+    if request.method == "POST":
+        try:
+            # Update doctor information
+            doctor.first_name = request.form["first_name"]
+            doctor.last_name = request.form["last_name"]
+            doctor.phone_number = request.form["phone_number"]
+            doctor.email = request.form["email"]
+            
+            # Update session doctor name if last name changed
+            session["doctor_name"] = f"Dr. {doctor.last_name}"
+            
+            db.session.commit()
+            flash("Profile updated successfully!", "success")
+            return redirect(url_for("doctor_profile"))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating profile: {str(e)}", "error")
+            return render_template("edit_doctor_profile.html", doctor=doctor)
+    
+    return render_template("edit_doctor_profile.html", doctor=doctor)
 
 
 @app.route("/register.html")
@@ -1329,6 +1460,7 @@ def add_doctor():
         </form>
     """
 
+
 # --- Patient Details Route ---
 
 
@@ -1346,8 +1478,16 @@ def view_patient(patient_id):
         return redirect(url_for("view_all_patients"))
 
     # Get related info
-    appointments = Appointment.query.filter_by(patient_id=patient.id).order_by(Appointment.date.desc()).all()
-    lab_results = LaboratoryResult.query.filter_by(patient_id=patient.id).order_by(LaboratoryResult.date.desc()).all()
+    appointments = (
+        Appointment.query.filter_by(patient_id=patient.id)
+        .order_by(Appointment.date.desc())
+        .all()
+    )
+    lab_results = (
+        LaboratoryResult.query.filter_by(patient_id=patient.id)
+        .order_by(LaboratoryResult.date.desc())
+        .all()
+    )
     medical_histories = (
         db.session.query(MedicalHistory, Allergy)
         .join(Allergy, MedicalHistory.allergy_id == Allergy.id)
@@ -1395,21 +1535,23 @@ def edit_patient(patient_id):
                 errors.append("First name is required")
             if not last_name:
                 errors.append("Last name is required")
-                
+
             # Parse date
             if date_of_birth:
                 try:
-                    patient.date_of_birth = datetime.strptime(date_of_birth, "%Y-%m-%d").date()
+                    patient.date_of_birth = datetime.strptime(
+                        date_of_birth, "%Y-%m-%d"
+                    ).date()
                 except ValueError:
                     errors.append("Invalid date format")
-            
+
             # Validate gender
             if gender:
                 if gender not in ["male", "female", "other"]:
                     errors.append("Invalid gender selection")
                 else:
                     patient.gender = GenderEnum(gender)
-            
+
             if errors:
                 for error in errors:
                     flash(error, "error")
@@ -1419,35 +1561,45 @@ def edit_patient(patient_id):
             patient.first_name = first_name
             patient.last_name = last_name
             patient.email = email if email else None
-            
+
             # Update or create demographic info
             if phone_number or address or emergency_contact:
                 if patient.demographic_info:
                     # Update existing demographic info
-                    patient.demographic_info.phone_number = phone_number if phone_number else None
+                    patient.demographic_info.phone_number = (
+                        phone_number if phone_number else None
+                    )
                     patient.demographic_info.address = address if address else None
-                    patient.demographic_info.emergency_contact = emergency_contact if emergency_contact else None
+                    patient.demographic_info.emergency_contact = (
+                        emergency_contact if emergency_contact else None
+                    )
                 else:
                     # Create new demographic info
                     demographic_info = DemographicInfo(
                         patient_id=patient.id,
                         phone_number=phone_number if phone_number else None,
                         address=address if address else None,
-                        emergency_contact=emergency_contact if emergency_contact else None,
+                        emergency_contact=(
+                            emergency_contact if emergency_contact else None
+                        ),
                     )
                     db.session.add(demographic_info)
-            
+
             # Update or create social history
-            smoking_status = "yes" if request.form.get("smoking_status") == "1" else "no"
+            smoking_status = (
+                "yes" if request.form.get("smoking_status") == "1" else "no"
+            )
             alcohol_use = request.form.get("alcohol_use", "").strip()
             drug_use = request.form.get("drug_use", "").strip()
             occupation = request.form.get("occupation", "").strip()
-            
+
             # Handle social history
             if patient.social_history:
                 # Update existing social history
                 patient.social_history.smoking_status = smoking_status
-                patient.social_history.alcohol_use = alcohol_use if alcohol_use else None
+                patient.social_history.alcohol_use = (
+                    alcohol_use if alcohol_use else None
+                )
                 patient.social_history.drug_use = drug_use if drug_use else None
                 patient.social_history.occupation = occupation if occupation else None
             else:
@@ -1461,7 +1613,7 @@ def edit_patient(patient_id):
                         occupation=occupation if occupation else None,
                     )
                     db.session.add(social_history)
-            
+
             db.session.commit()
             flash(f"Patient {first_name} {last_name} updated successfully!", "success")
             return redirect(url_for("view_patient", patient_id=patient.id))
@@ -1488,23 +1640,26 @@ def delete_patient(patient_id):
 
     try:
         patient_name = f"{patient.first_name} {patient.last_name}"
-        
+
         # Delete related records first to avoid foreign key constraints
         # Delete appointments
         Appointment.query.filter_by(patient_id=patient.id).delete()
-        
+
         # Delete lab results
         LaboratoryResult.query.filter_by(patient_id=patient.id).delete()
-        
+
         # Delete medical history
         MedicalHistory.query.filter_by(patient_id=patient.id).delete()
-        
+
         # Delete patient
         db.session.delete(patient)
         db.session.commit()
-        
-        flash(f"Patient {patient_name} and all related records deleted successfully!", "success")
-        
+
+        flash(
+            f"Patient {patient_name} and all related records deleted successfully!",
+            "success",
+        )
+
     except Exception as e:
         db.session.rollback()
         flash(f"Error deleting patient: {str(e)}", "error")
@@ -1520,7 +1675,7 @@ def edit_lab_result(lab_result_id):
         return redirect(url_for("login"))
 
     doctor_id = session.get("doctor_id")
-    
+
     # Get the lab result and verify access
     lab_result = (
         db.session.query(LaboratoryResult)
@@ -1529,7 +1684,7 @@ def edit_lab_result(lab_result_id):
         .filter(Patient.doctor_id == doctor_id)
         .first()
     )
-    
+
     if not lab_result:
         flash("Lab result not found or access denied.", "error")
         return redirect(url_for("view_lab_results"))
@@ -1549,14 +1704,14 @@ def edit_lab_result(lab_result_id):
                 errors.append("Result is required")
             if not date_str:
                 errors.append("Date is required")
-                
+
             # Parse date
             if date_str:
                 try:
                     test_date = datetime.strptime(date_str, "%Y-%m-%d")
                 except ValueError:
                     errors.append("Invalid date format")
-            
+
             if errors:
                 for error in errors:
                     flash(error, "error")
@@ -1566,9 +1721,11 @@ def edit_lab_result(lab_result_id):
             lab_result.test_name = test_name
             lab_result.result = result
             lab_result.date = test_date
-            
+
             db.session.commit()
-            patient_name = f"{lab_result.patient.first_name} {lab_result.patient.last_name}"
+            patient_name = (
+                f"{lab_result.patient.first_name} {lab_result.patient.last_name}"
+            )
             flash(f"Lab result for {patient_name} updated successfully!", "success")
             return redirect(url_for("view_lab_results"))
 
@@ -1587,7 +1744,7 @@ def delete_lab_result(lab_result_id):
         return redirect(url_for("login"))
 
     doctor_id = session.get("doctor_id")
-    
+
     # Get the lab result and verify access
     lab_result = (
         db.session.query(LaboratoryResult)
@@ -1596,7 +1753,7 @@ def delete_lab_result(lab_result_id):
         .filter(Patient.doctor_id == doctor_id)
         .first()
     )
-    
+
     if not lab_result:
         flash("Lab result not found or access denied.", "error")
         return redirect(url_for("view_lab_results"))
@@ -1604,17 +1761,355 @@ def delete_lab_result(lab_result_id):
     try:
         patient_name = f"{lab_result.patient.first_name} {lab_result.patient.last_name}"
         test_name = lab_result.test_name
-        
+
         db.session.delete(lab_result)
         db.session.commit()
-        
-        flash(f"Lab result ({test_name}) for {patient_name} deleted successfully!", "success")
-        
+
+        flash(
+            f"Lab result ({test_name}) for {patient_name} deleted successfully!",
+            "success",
+        )
+
     except Exception as e:
         db.session.rollback()
         flash(f"Error deleting lab result: {str(e)}", "error")
 
     return redirect(url_for("view_lab_results"))
+
+
+# ===== RADIOLOGY IMAGING ROUTES =====
+
+@app.route("/add_radiology_imaging", methods=["GET", "POST"])
+def add_radiology_imaging():
+    """Add new radiology imaging record"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    if request.method == "POST":
+        try:
+            # Get form data
+            patient_id = request.form.get("patient_id", "").strip()
+            imaging_name = request.form.get("imaging_name", "").strip()
+            imaging_date = request.form.get("imaging_date", "").strip()
+
+            # Validation
+            errors = []
+            if not patient_id:
+                errors.append("Please select a patient")
+            if not imaging_name:
+                errors.append("Imaging name is required")
+            if not imaging_date:
+                errors.append("Imaging date is required")
+            
+            # Handle file upload
+            image_file = request.files.get('image_file')
+            if image_file and image_file.filename != '':
+                if not allowed_file(image_file.filename):
+                    errors.append("Invalid file type. Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM")
+
+            # Check if patient belongs to this doctor
+            if patient_id:
+                patient = Patient.query.filter_by(
+                    id=patient_id, doctor_id=doctor_id
+                ).first()
+                if not patient:
+                    errors.append("Invalid patient selection")
+
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                patients = (
+                    Patient.query.filter_by(doctor_id=doctor_id)
+                    .order_by(Patient.last_name)
+                    .all()
+                )
+                return render_template("add_radiology_imaging.html", patients=patients)
+
+            # Create imaging datetime
+            try:
+                # Try datetime-local format first (YYYY-MM-DDTHH:MM)
+                imaging_datetime = datetime.strptime(imaging_date, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                try:
+                    # Try date-only format (YYYY-MM-DD)
+                    imaging_datetime = datetime.strptime(imaging_date, "%Y-%m-%d")
+                except ValueError:
+                    errors.append("Invalid date format")
+                    for error in errors:
+                        flash(error, "error")
+                    patients = (
+                        Patient.query.filter_by(doctor_id=doctor_id)
+                        .order_by(Patient.last_name)
+                        .all()
+                    )
+                    return render_template("add_radiology_imaging.html", patients=patients)
+
+            # Handle file upload if present
+            image_filename = None
+            if image_file and image_file.filename != '':
+                image_filename = save_uploaded_file(image_file, int(patient_id))
+                if not image_filename:
+                    errors.append("Failed to save uploaded image")
+                    for error in errors:
+                        flash(error, "error")
+                    patients = (
+                        Patient.query.filter_by(doctor_id=doctor_id)
+                        .order_by(Patient.last_name)
+                        .all()
+                    )
+                    return render_template("add_radiology_imaging.html", patients=patients)
+
+            # Create new radiology imaging record
+            new_imaging = RadiologyImaging(
+                patient_id=int(patient_id),
+                name=imaging_name,
+                date=imaging_datetime,
+                image_filename=image_filename,
+            )
+
+            db.session.add(new_imaging)
+            db.session.commit()
+
+            patient = Patient.query.get(patient_id)
+            flash(
+                f"Radiology imaging added for {patient.first_name} {patient.last_name}: {imaging_name}",
+                "success",
+            )
+            return redirect(url_for("view_radiology_imaging"))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding radiology imaging: {str(e)}", "error")
+
+    # GET request - show form
+    patients = (
+        Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
+    )
+    selected_patient_id = request.args.get("patient_id", "")
+    return render_template(
+            "add_radiology_imaging.html",
+            patients=patients,
+            selected_patient_id=selected_patient_id
+        )
+
+
+@app.route("/view_radiology_imaging")
+def view_radiology_imaging():
+    """View all radiology imaging records"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    # Get search parameters
+    search_patient = request.args.get("search_patient", "").strip()
+    search_imaging = request.args.get("search_imaging", "").strip()
+
+    # Build query
+    query = (
+        db.session.query(RadiologyImaging)
+        .join(Patient)
+        .filter(Patient.doctor_id == doctor_id)
+    )
+
+    # Apply filters
+    if search_patient:
+        query = query.filter(
+            db.or_(
+                Patient.first_name.ilike(f"%{search_patient}%"),
+                Patient.last_name.ilike(f"%{search_patient}%"),
+            )
+        )
+
+    if search_imaging:
+        query = query.filter(RadiologyImaging.name.ilike(f"%{search_imaging}%"))
+
+    # Execute query and order results
+    radiology_imaging = query.order_by(RadiologyImaging.date.desc()).all()
+
+    return render_template(
+        "view_radiology_imaging.html",
+        radiology_imaging=radiology_imaging,
+        search_patient=search_patient,
+        search_imaging=search_imaging,
+    )
+
+
+@app.route("/edit_radiology_imaging/<int:imaging_id>", methods=["GET", "POST"])
+def edit_radiology_imaging(imaging_id):
+    """Edit radiology imaging record"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    # Get the imaging record and verify access
+    imaging = (
+        db.session.query(RadiologyImaging)
+        .join(Patient)
+        .filter(RadiologyImaging.id == imaging_id)
+        .filter(Patient.doctor_id == doctor_id)
+        .first()
+    )
+
+    if not imaging:
+        flash("Radiology imaging record not found or access denied.", "error")
+        return redirect(url_for("view_radiology_imaging"))
+
+    if request.method == "POST":
+        try:
+            # Get form data
+            imaging_name = request.form.get("imaging_name", "").strip()
+            imaging_date = request.form.get("imaging_date", "").strip()
+
+            # Validation
+            errors = []
+            if not imaging_name:
+                errors.append("Imaging name is required")
+            if not imaging_date:
+                errors.append("Imaging date is required")
+            
+            # Handle file upload
+            image_file = request.files.get('image_file')
+            if image_file and image_file.filename != '':
+                if not allowed_file(image_file.filename):
+                    errors.append("Invalid file type. Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM")
+
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                return render_template("edit_radiology_imaging.html", imaging=imaging)
+
+            # Parse date
+            try:
+                # Try datetime-local format first (YYYY-MM-DDTHH:MM)
+                imaging_datetime = datetime.strptime(imaging_date, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                try:
+                    # Try date-only format (YYYY-MM-DD)
+                    imaging_datetime = datetime.strptime(imaging_date, "%Y-%m-%d")
+                except ValueError:
+                    flash("Invalid date format", "error")
+                    return render_template("edit_radiology_imaging.html", imaging=imaging)
+
+            # Handle image replacement if new file uploaded
+            if image_file and image_file.filename != '':
+                # Save new image
+                new_image_filename = save_uploaded_file(image_file, imaging.patient_id)
+                if new_image_filename:
+                    # Delete old image if it exists
+                    if imaging.image_filename:
+                        delete_image_file(imaging.image_filename)
+                    # Update with new image filename
+                    imaging.image_filename = new_image_filename
+                else:
+                    flash("Failed to save uploaded image", "error")
+                    return render_template("edit_radiology_imaging.html", imaging=imaging)
+
+            # Update the imaging record
+            imaging.name = imaging_name
+            imaging.date = imaging_datetime
+
+            db.session.commit()
+
+            flash(
+                f"Radiology imaging updated: {imaging_name}",
+                "success",
+            )
+            return redirect(url_for("view_radiology_imaging"))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating radiology imaging: {str(e)}", "error")
+
+    return render_template("edit_radiology_imaging.html", imaging=imaging)
+
+
+@app.route("/delete_radiology_imaging/<int:imaging_id>", methods=["POST"])
+def delete_radiology_imaging(imaging_id):
+    """Delete radiology imaging record"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    # Get the imaging record and verify access
+    imaging = (
+        db.session.query(RadiologyImaging)
+        .join(Patient)
+        .filter(RadiologyImaging.id == imaging_id)
+        .filter(Patient.doctor_id == doctor_id)
+        .first()
+    )
+
+    if not imaging:
+        flash("Radiology imaging record not found or access denied.", "error")
+        return redirect(url_for("view_radiology_imaging"))
+
+    try:
+        patient_name = f"{imaging.patient.first_name} {imaging.patient.last_name}"
+        imaging_name = imaging.name
+        image_filename = imaging.image_filename
+
+        db.session.delete(imaging)
+        db.session.commit()
+
+        # Delete associated image file if it exists
+        if image_filename:
+            delete_image_file(image_filename)
+
+        flash(
+            f"Radiology imaging ({imaging_name}) for {patient_name} deleted successfully!",
+            "success",
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting radiology imaging: {str(e)}", "error")
+
+    return redirect(url_for("view_radiology_imaging"))
+
+
+@app.route("/radiology_image/<path:filename>")
+def radiology_image(filename):
+    """Serve radiology images securely"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+    
+    # Extract patient ID from filename path (format: patient_X/filename.ext)
+    try:
+        if '/' in filename:
+            patient_folder, image_name = filename.split('/', 1)
+            patient_id = int(patient_folder.replace('patient_', ''))
+            
+            # Verify that this patient belongs to the logged-in doctor
+            patient = Patient.query.filter_by(id=patient_id, doctor_id=doctor_id).first()
+            if not patient:
+                flash("Access denied to this image.", "error")
+                return redirect(url_for("view_radiology_imaging"))
+                
+            # Serve the file
+            from flask import send_from_directory
+            return send_from_directory(
+                os.path.join(app.config['UPLOAD_FOLDER'], patient_folder), 
+                image_name
+            )
+        else:
+            flash("Invalid image path.", "error")
+            return redirect(url_for("view_radiology_imaging"))
+            
+    except (ValueError, IndexError):
+        flash("Invalid image path.", "error")
+        return redirect(url_for("view_radiology_imaging"))
 
 
 if __name__ == "__main__":
