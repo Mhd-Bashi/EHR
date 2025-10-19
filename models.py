@@ -215,7 +215,8 @@ class SocialHistory(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"), nullable=False, unique=True)
-    smoking_status = db.Column(db.String(50))
+    smoking_status = db.Column(db.Boolean, default=False)  # Changed to boolean for checkbox
+    smoking_units = db.Column(db.String(50))  # New field for tracking smoking amount per day
     alcohol_use = db.Column(db.String(50))
     drug_use = db.Column(db.String(50))
     occupation = db.Column(db.String(100))

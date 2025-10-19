@@ -9,6 +9,6 @@ class Config:
     MAIL_SERVER = "smtp.gmail.com"
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USERNAME = "bashi.artruan@gmail.com"
-    MAIL_PASSWORD = "saxc ajds fzfm lpft"
-    MAIL_DEFAULT_SENDER = ("EHR System", "bashi.artruan@gmail.com")
+    MAIL_USERNAME = "u2302900270@gmail.com"
+    MAIL_PASSWORD = "swkc vdsl vyjh fdug"
+    MAIL_DEFAULT_SENDER = ("EHR System", "u2302900270@gmail.com")

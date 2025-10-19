@@ -10,6 +10,7 @@ from models import (
     Appointment,
     Patient,
     DemographicInfo,
+    SocialHistory,
     GenderEnum,
     AppointmentStatusEnum,
     MedicalHistory,
@@ -363,8 +364,26 @@ def add_patient():
                     emergency_contact=emergency_contact if emergency_contact else None,
                 )
                 db.session.add(demographic_info)
-                db.session.commit()
 
+            # Add social history if provided
+            smoking_status = request.form.get("smoking_status") == "1"
+            smoking_units = request.form.get("smoking_units", "").strip()
+            alcohol_use = request.form.get("alcohol_use", "").strip()
+            drug_use = request.form.get("drug_use", "").strip()
+            occupation = request.form.get("occupation", "").strip()
+            
+            if smoking_status or smoking_units or alcohol_use or drug_use or occupation:
+                social_history = SocialHistory(
+                    patient_id=new_patient.id,
+                    smoking_status=smoking_status,
+                    smoking_units=smoking_units if smoking_units else None,
+                    alcohol_use=alcohol_use if alcohol_use else None,
+                    drug_use=drug_use if drug_use else None,
+                    occupation=occupation if occupation else None,
+                )
+                db.session.add(social_history)
+
+            db.session.commit()
             flash(f"Patient {first_name} {last_name} added successfully!", "success")
             return redirect(url_for("dashboard"))
 
@@ -1413,6 +1432,33 @@ def edit_patient(patient_id):
                         emergency_contact=emergency_contact if emergency_contact else None,
                     )
                     db.session.add(demographic_info)
+            
+            # Update or create social history
+            smoking_status = request.form.get("smoking_status") == "1"
+            smoking_units = request.form.get("smoking_units", "").strip()
+            alcohol_use = request.form.get("alcohol_use", "").strip()
+            drug_use = request.form.get("drug_use", "").strip()
+            occupation = request.form.get("occupation", "").strip()
+            
+            if patient.social_history:
+                # Update existing social history
+                patient.social_history.smoking_status = smoking_status
+                patient.social_history.smoking_units = smoking_units if smoking_units else None
+                patient.social_history.alcohol_use = alcohol_use if alcohol_use else None
+                patient.social_history.drug_use = drug_use if drug_use else None
+                patient.social_history.occupation = occupation if occupation else None
+            else:
+                # Create new social history if any field has data
+                if smoking_status or smoking_units or alcohol_use or drug_use or occupation:
+                    social_history = SocialHistory(
+                        patient_id=patient.id,
+                        smoking_status=smoking_status,
+                        smoking_units=smoking_units if smoking_units else None,
+                        alcohol_use=alcohol_use if alcohol_use else None,
+                        drug_use=drug_use if drug_use else None,
+                        occupation=occupation if occupation else None,
+                    )
+                    db.session.add(social_history)
             
             db.session.commit()
             flash(f"Patient {first_name} {last_name} updated successfully!", "success")

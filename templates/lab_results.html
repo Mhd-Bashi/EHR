@@ -634,164 +634,35 @@
         const printWindow = window.open('', '_blank');
         const currentDate = new Date();
         
-        printWindow.document.write('<!DOCTYPE html>');
-        printWindow.document.write('<html><head>');
-        printWindow.document.write('<title>Lab Result - ' + patientName + '</title>');
-        printWindow.document.write('<style>');
-        printWindow.document.write('body { font-family: Arial, sans-serif; margin: 40px; color: #333; }');
-        printWindow.document.write('.header { text-align: center; border-bottom: 3px solid #667eea; padding-bottom: 20px; margin-bottom: 30px; }');
-        printWindow.document.write('.header h1 { color: #667eea; margin-bottom: 5px; }');
-        printWindow.document.write('.header p { color: #666; margin: 0; }');
-        printWindow.document.write('.result-container { max-width: 600px; margin: 0 auto; background: #f9f9f9; padding: 30px; border-radius: 10px; border-left: 5px solid #667eea; }');
-        printWindow.document.write('.result-row { display: flex; justify-content: space-between; margin-bottom: 15px; padding: 10px 0; border-bottom: 1px solid #ddd; }');
-        printWindow.document.write('.result-row:last-child { border-bottom: none; }');
-        printWindow.document.write('.label { font-weight: bold; color: #333; flex: 1; }');
-        printWindow.document.write('.value { flex: 2; text-align: right; color: #555; }');
-        printWindow.document.write('.result-value { font-family: "Courier New", monospace; background-color: #e9ecef; padding: 8px 12px; border-radius: 4px; font-weight: bold; color: #667eea; }');
-        printWindow.document.write('.footer { text-align: center; margin-top: 40px; color: #666; font-size: 0.9em; }');
-        printWindow.document.write('@media print { body { margin: 20px; } .header { border-bottom: 2px solid #000; } }');
-        printWindow.document.write('</style></head><body>');
+        let html = '<!DOCTYPE html><html><head><title>Lab Result - ' + patientName + '</title>';
+        html += '<style>';
+        html += 'body{font-family:Arial,sans-serif;margin:40px;color:#333}';
+        html += '.header{text-align:center;border-bottom:3px solid #667eea;padding-bottom:20px;margin-bottom:30px}';
+        html += '.header h1{color:#667eea;margin-bottom:5px}';
+        html += '.header p{color:#666;margin:0}';
+        html += '.result-container{max-width:600px;margin:0 auto;background:#f9f9f9;padding:30px;border-radius:10px;border-left:5px solid #667eea}';
+        html += '.result-row{display:flex;justify-content:space-between;margin-bottom:15px;padding:10px 0;border-bottom:1px solid #ddd}';
+        html += '.result-row:last-child{border-bottom:none}';
+        html += '.label{font-weight:bold;color:#333;flex:1}';
+        html += '.value{flex:2;text-align:right;color:#555}';
+        html += '.result-value{font-family:Courier New,monospace;background-color:#e9ecef;padding:8px 12px;border-radius:4px;font-weight:bold;color:#667eea}';
+        html += '.footer{text-align:center;margin-top:40px;color:#666;font-size:0.9em}';
+        html += '</style></head><body>';
+        html += '<div class="header"><h1>Laboratory Result Report</h1><p>Electronic Health Record System</p></div>';
+        html += '<div class="result-container">';
+        html += '<div class="result-row"><div class="label">Patient Name:</div><div class="value">' + patientName + '</div></div>';
+        html += '<div class="result-row"><div class="label">Patient Age:</div><div class="value">' + patientAge + ' years</div></div>';
+        html += '<div class="result-row"><div class="label">Test Name:</div><div class="value">' + testName + '</div></div>';
+        html += '<div class="result-row"><div class="label">Test Result:</div><div class="value"><span class="result-value">' + result + '</span></div></div>';
+        html += '<div class="result-row"><div class="label">Test Date:</div><div class="value">' + testDate + '</div></div>';
+        html += '<div class="result-row"><div class="label">Report Generated:</div><div class="value">' + currentDate.toLocaleString() + '</div></div>';
+        html += '</div>';
+        html += '<div class="footer"><p>This is an official laboratory result report.</p></div>';
+        html += '</body></html>';
         
-        printWindow.document.write('<div class="header">');
-        printWindow.document.write('<h1>Laboratory Result Report</h1>');
-        printWindow.document.write('<p>Electronic Health Record System</p>');
-        printWindow.document.write('</div>');
-        
-        printWindow.document.write('<div class="result-container">');
-        printWindow.document.write('<div class="result-row"><div class="label">Patient Name:</div><div class="value">' + patientName + '</div></div>');
-        printWindow.document.write('<div class="result-row"><div class="label">Patient Age:</div><div class="value">' + patientAge + ' years</div></div>');
-        printWindow.document.write('<div class="result-row"><div class="label">Test Name:</div><div class="value">' + testName + '</div></div>');
-        printWindow.document.write('<div class="result-row"><div class="label">Test Result:</div><div class="value"><span class="result-value">' + result + '</span></div></div>');
-        printWindow.document.write('<div class="result-row"><div class="label">Test Date & Time:</div><div class="value">' + testDate + '</div></div>');
-        printWindow.document.write('<div class="result-row"><div class="label">Report Generated:</div><div class="value">' + currentDate.toLocaleString() + '</div></div>');
-        printWindow.document.write('</div>');
-        
-        printWindow.document.write('<div class="footer">');
-        printWindow.document.write('<p>This is an official laboratory result report generated by the EHR System.</p>');
-        printWindow.document.write('<p>Report printed on ' + currentDate.toLocaleDateString() + '</p>');
-        printWindow.document.write('</div>');
-        
-        printWindow.document.write('<script>');
-        printWindow.document.write('window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };');
-        printWindow.document.write('</script>');
-        
-        printWindow.document.write('</body></html>');
+        printWindow.document.write(html);
         printWindow.document.close();
-    }
-</script>
-{% endblock %}
-                        border-bottom: 3px solid #667eea;
-                        padding-bottom: 20px;
-                        margin-bottom: 30px;
-                    }
-                    .header h1 {
-                        color: #667eea;
-                        margin-bottom: 5px;
-                    }
-                    .header p {
-                        color: #666;
-                        margin: 0;
-                    }
-                    .result-container {
-                        max-width: 600px;
-                        margin: 0 auto;
-                        background: #f9f9f9;
-                        padding: 30px;
-                        border-radius: 10px;
-                        border-left: 5px solid #667eea;
-                    }
-                    .result-row {
-                        display: flex;
-                        justify-content: space-between;
-                        margin-bottom: 15px;
-                        padding: 10px 0;
-                        border-bottom: 1px solid #ddd;
-                    }
-                    .result-row:last-child {
-                        border-bottom: none;
-                    }
-                    .label {
-                        font-weight: bold;
-                        color: #333;
-                        flex: 1;
-                    }
-                    .value {
-                        flex: 2;
-                        text-align: right;
-                        color: #555;
-                    }
-                    .result-value {
-                        font-family: 'Courier New', monospace;
-                        background-color: #e9ecef;
-                        padding: 8px 12px;
-                        border-radius: 4px;
-                        font-weight: bold;
-                        color: #667eea;
-                    }
-                    .footer {
-                        text-align: center;
-                        margin-top: 40px;
-                        color: #666;
-                        font-size: 0.9em;
-                    }
-                    @media print {
-                        body { margin: 20px; }
-                        .header { border-bottom: 2px solid #000; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>Laboratory Result Report</h1>
-                    <p>Electronic Health Record System</p>
-                </div>
-                
-                <div class="result-container">
-                    <div class="result-row">
-                        <div class="label">Patient Name:</div>
-                        <div class="value">${patientName}</div>
-                    </div>
-                    <div class="result-row">
-                        <div class="label">Patient Age:</div>
-                        <div class="value">${patientAge} years</div>
-                    </div>
-                    <div class="result-row">
-                        <div class="label">Test Name:</div>
-                        <div class="value">${testName}</div>
-                    </div>
-                    <div class="result-row">
-                        <div class="label">Test Result:</div>
-                        <div class="value"><span class="result-value">${result}</span></div>
-                    </div>
-                    <div class="result-row">
-                        <div class="label">Test Date & Time:</div>
-                        <div class="value">${testDate}</div>
-                    </div>
-                    <div class="result-row">
-                        <div class="label">Report Generated:</div>
-                        <div class="value">${new Date().toLocaleString()}</div>
-                    </div>
-                </div>
-                
-                <div class="footer">
-                    <p>This is an official laboratory result report generated by the EHR System.</p>
-                    <p>Report printed on ${new Date().toLocaleDateString()}</p>
-                </div>
-                
-                <script>
-                    window.onload = function() {
-                        window.print();
-                        window.onafterprint = function() {
-                            window.close();
-                        };
-                    };
-                </script>
-            </body>
-            </html>
-        `;
-        
-        printWindow.document.write(printContent);
-        printWindow.document.close();
+        printWindow.print();
     }
 </script>
 {% endblock %}
