@@ -146,8 +146,8 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; margin-top: 30px;">
                 <h3>Radiology Imaging</h3>
                 <a href="{{ url_for('add_radiology_imaging') }}?patient_id={{ patient.id }}" 
-                   class="btn btn-outline-secondary btn-sm" title="Add Radiology Record">
-                    <i class="fas fa-x-ray"></i> Add
+                   class="btn btn-outline-success btn-sm" title="Add Radiology Record">
+                   <i class="fas fa-plus"></i> Add
                 </a>
             </div>
             {% if radiology_imaging %}
