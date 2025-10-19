@@ -63,9 +63,11 @@
                                 <div style="font-weight: 600; color: #333; margin-bottom: 4px;">
                                     {{ imaging.patient.first_name }} {{ imaging.patient.last_name }}
                                 </div>
+                                {% if imaging.patient.date_of_birth %}
                                 <div style="color: #6c757d; font-size: 0.9em;">
-                                    ID: {{ imaging.patient.id }}
+                                    {{ imaging.patient.date_of_birth.strftime('%Y-%m-%d') }}
                                 </div>
+                                {% endif %}
                             </td>
                             <td style="padding: 20px;">
                                 <div style="color: #333; font-weight: 500;">{{ imaging.name }}</div>

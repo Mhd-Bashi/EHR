@@ -15,7 +15,7 @@
             <select name="patient_id" id="patient_id" required style="width: 100%; padding: 15px; border: 2px solid #e1e5e9; border-radius: 10px; font-size: 16px; background: white; transition: all 0.3s ease; box-sizing: border-box;">
                 <option value="">Choose a patient...</option>
                 {% for patient in patients %}
-                <option value="{{ patient.id }}" {% if selected_patient_id and selected_patient_id|string == patient.id|string %}selected{% endif %}>{{ patient.first_name }} {{ patient.last_name }} (ID: {{ patient.id }})</option>
+                <option value="{{ patient.id }}" {% if selected_patient_id and selected_patient_id|string == patient.id|string %}selected{% endif %}>{{ patient.first_name }} {{ patient.last_name }} {{ patient.date_of_birth.strftime('%Y-%m-%d') }}</option>
                 {% endfor %}
             </select>
         </div>
