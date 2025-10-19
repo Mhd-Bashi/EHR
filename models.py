@@ -222,8 +222,7 @@ class SocialHistory(db.Model):
     )
     smoking_status = db.Column(
         db.String(50)
-    )  # Keep as string for now to match existing database
-    # smoking_units = db.Column(db.String(50))  # Commented out until database migration is complete
+    )
     alcohol_use = db.Column(db.String(50))
     drug_use = db.Column(db.String(50))
     occupation = db.Column(db.String(100))

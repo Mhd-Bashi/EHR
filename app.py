@@ -432,9 +432,6 @@ def add_patient():
             smoking_status = (
                 "yes" if request.form.get("smoking_status") == "1" else "no"
             )
-            smoking_units = request.form.get(
-                "smoking_units", ""
-            ).strip()  # Store for future use
             alcohol_use = request.form.get("alcohol_use", "").strip()
             drug_use = request.form.get("drug_use", "").strip()
             occupation = request.form.get("occupation", "").strip()

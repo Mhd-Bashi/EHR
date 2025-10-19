@@ -119,6 +119,12 @@
             border: none;
         }
 
+        .btn-radiology {
+            background: linear-gradient(135deg, hwb(57 25% 60%) 0%, #a04ba2 100%);
+            color: white;
+            border: none;
+        }
+
         .btn-primary:hover {
             background: linear-gradient(135deg, #5a67d8 0%, #6a4c93 100%);
             transform: translateY(-2px);
@@ -330,6 +336,7 @@
                 <a href="{{ url_for('add_patient') }}" class="btn btn-primary">Add New Patient</a>
                 <a href="{{ url_for('schedule_appointment') }}" class="btn btn-success">Schedule Appointment</a>
                 <a href="{{ url_for('add_lab_result') }}" class="btn btn-info">Add Lab Result</a>
+                <a href="{{ url_for('add_radiology_imaging') }}"  class="btn btn-primary btn-radiology">Add Radiology Result</a>
                 <a href="{{ url_for('add_medical_history') }}" class="btn btn-secondary">Add Medical History</a>
                 <a href="{{ url_for('view_all_patients') }}" class="btn btn-warning">View All Patients</a>
             </div>
