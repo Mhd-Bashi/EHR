@@ -96,11 +96,8 @@
             <div>
                 <p style="margin-bottom: 15px;">
                     <strong>Smoking Status:</strong> 
-                    {% if patient.social_history.smoking_status %}
+                    {% if patient.social_history.smoking_status == 'yes' or patient.social_history.smoking_status == '1' or patient.social_history.smoking_status == 'true' %}
                         <span style="color: #dc3545; font-weight: 600;">Yes</span>
-                        {% if patient.social_history.smoking_units %}
-                            <span style="color: #666; margin-left: 8px;">({{ patient.social_history.smoking_units }})</span>
-                        {% endif %}
                     {% else %}
                         <span style="color: #28a745; font-weight: 600;">No</span>
                     {% endif %}

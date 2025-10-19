@@ -68,34 +68,6 @@
             
             <div class="form-row">
                 <div class="form-group">
-                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                        <input type="checkbox" id="smoking_status" name="smoking_status" value="1"
-                               {{ 'checked' if patient.social_history and patient.social_history.smoking_status else '' }}
-                               style="margin-right: 10px; transform: scale(1.2);">
-                        <label for="smoking_status" style="margin-bottom: 0; cursor: pointer;">Smoking Status</label>
-                    </div>
-                    <div id="smoking_details" style="margin-top: 10px; display: none;">
-                        <label for="smoking_units" style="font-size: 0.9rem; color: #666;">Smoking Amount per Day</label>
-                        <input type="text" id="smoking_units" name="smoking_units" 
-                               placeholder="e.g., 1 pack, 10 cigarettes, etc."
-                               value="{{ patient.social_history.smoking_units if patient.social_history and patient.social_history.smoking_units else '' }}">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="alcohol_use">Alcohol Use</label>
-                    <select id="alcohol_use" name="alcohol_use">
-                        <option value="">Select alcohol use</option>
-                        <option value="none" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'none' else '' }}>None</option>
-                        <option value="occasional" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'occasional' else '' }}>Occasional</option>
-                        <option value="moderate" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'moderate' else '' }}>Moderate</option>
-                        <option value="heavy" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'heavy' else '' }}>Heavy</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="form-row">
-                <div class="form-group">
                     <label for="drug_use">Drug Use</label>
                     <select id="drug_use" name="drug_use">
                         <option value="">Select drug use</option>
@@ -112,7 +84,29 @@
                            placeholder="Current occupation"
                            value="{{ patient.social_history.occupation if patient.social_history and patient.social_history.occupation else '' }}">
                 </div>
-            </div>
+                <div class="form-group">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <input type="checkbox" id="smoking_status" name="smoking_status" value="1"
+                               {% if patient.social_history and (patient.social_history.smoking_status == 'yes' or patient.social_history.smoking_status == '1' or patient.social_history.smoking_status == 'true') %}checked{% endif %}
+                               style="margin-right: 10px; transform: scale(1.2);">
+                        <label for="smoking_status" style="margin-bottom: 0; cursor: pointer;">Smoking Status</label>
+                    </div>
+                    <!-- Smoking units field temporarily hidden until database migration -->
+                    <div id="smoking_details" style="margin-top: 10px; display: none;">
+                        <small style="color: #666; font-style: italic;">Additional smoking details will be available after database update.</small>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="alcohol_use">Alcohol Use</label>
+                    <select id="alcohol_use" name="alcohol_use">
+                        <option value="">Select alcohol use</option>
+                        <option value="none" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'none' else '' }}>None</option>
+                        <option value="occasional" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'occasional' else '' }}>Occasional</option>
+                        <option value="moderate" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'moderate' else '' }}>Moderate</option>
+                        <option value="heavy" {{ 'selected' if patient.social_history and patient.social_history.alcohol_use == 'heavy' else '' }}>Heavy</option>
+                    </select>
+                </div>
         </div>
         
         <div class="form-actions">
@@ -235,7 +229,6 @@ document.addEventListener('DOMContentLoaded', function() {
             smokingDetails.style.display = 'block';
         } else {
             smokingDetails.style.display = 'none';
-            document.getElementById('smoking_units').value = ''; // Clear the field when unchecked
         }
     });
     

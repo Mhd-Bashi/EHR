@@ -276,11 +276,9 @@
                                    style="margin-right: 10px; transform: scale(1.2);">
                             <label for="smoking_status" style="margin-bottom: 0; cursor: pointer;">Smoking Status</label>
                         </div>
+                        <!-- Smoking units field temporarily hidden until database migration -->
                         <div id="smoking_details" style="margin-top: 10px; display: none;">
-                            <label for="smoking_units" style="font-size: 0.9rem; color: #666;">Smoking Amount per Day</label>
-                            <input type="text" id="smoking_units" name="smoking_units" 
-                                   placeholder="e.g., 1 pack, 10 cigarettes, etc."
-                                   value="{{ request.form.get('smoking_units', '') }}">
+                            <small style="color: #666; font-style: italic;">Additional smoking details will be available after database update.</small>
                         </div>
                     </div>
                     
@@ -351,7 +349,6 @@
                 smokingDetails.style.display = 'block';
             } else {
                 smokingDetails.style.display = 'none';
-                document.getElementById('smoking_units').value = ''; // Clear the field when unchecked
             }
         });
         
