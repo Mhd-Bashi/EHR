@@ -588,21 +588,34 @@
                                 </td>
                                 <td class="records-cell">
                                     <div class="records-summary">
+                                        {% if patient.appointment_count %}
                                         <div class="record-item">
                                             <i class="fas fa-calendar-alt"></i> 
                                             <span class="count-badge">{{ patient.appointment_count }}</span>
                                             <span class="record-label">Appointments</span>
                                         </div>
+                                        {% endif %}
+                                        {% if patient.lab_result_count %}
                                         <div class="record-item">
                                             <i class="fas fa-flask"></i> 
                                             <span class="count-badge">{{ patient.lab_result_count }}</span>
                                             <span class="record-label">Lab Results</span>
                                         </div>
+                                        {% endif %}
+                                        {% if patient.radiology_result_count %}
+                                        <div class="record-item">
+                                            <i class="fas fa-flask"></i> 
+                                            <span class="count-badge">{{ patient.radiology_result_count }}</span>
+                                            <span class="record-label">Radiology</span>
+                                        </div>
+                                        {% endif %}
+                                        {% if patient.medical_history_count %}
                                         <div class="record-item">
                                             <i class="fas fa-notes-medical"></i> 
                                             <span class="count-badge">{{ patient.medical_history_count }}</span>
                                             <span class="record-label">Medical History</span>
                                         </div>
+                                        {% endif %}
                                     </div>
                                     {% if patient.recent_medical_histories %}
                                         <div class="medical-history-preview">

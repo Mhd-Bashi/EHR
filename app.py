@@ -726,6 +726,9 @@ def view_all_patients():
             patient.lab_result_count = LaboratoryResult.query.filter_by(
                 patient_id=patient.id
             ).count()
+            patient.radiology_result_count = RadiologyImaging.query.filter_by(
+                patient_id=patient.id
+            ).count()
             patient.medical_history_count = MedicalHistory.query.filter_by(
                 patient_id=patient.id
             ).count()
