@@ -19,6 +19,7 @@ from models import (
     AppointmentStatusEnum,
     MedicalHistory,
     Allergy,
+    doctor_specialty
 )
 from utils.mail_helper import mail, init_mail, send_email
 from utils.token_holper import generate_token, load_token
@@ -219,6 +220,19 @@ def login_user():
             flash("Invalid username/email or password.", "error")
             return redirect(url_for("login"))
 
+        # Fetch specialties only for the current doctor
+        doctor_specialities = (
+            db.session.query(Specialty.name)
+            .join(doctor_specialty)
+            .filter(doctor_specialty.c.doctor_id == doctor.id)
+            .all()
+        )
+
+        # Check if user exists
+        if not doctor:
+            flash("Invalid username/email or password.", "error")
+            return redirect(url_for("login"))
+
         # Check password
         if not check_password_hash(doctor.password, password):
             flash("Invalid username/email or password.", "error")
@@ -237,6 +251,7 @@ def login_user():
         session["doctor_id"] = doctor.id
         session["doctor_name"] = f"Dr. {doctor.last_name}"
         session["logged_in"] = True
+        session['doctor_specialty'] = ", ".join([s[0] for s in doctor_specialities]) if doctor_specialities else 'General'
 
         flash(f"Welcome back, Dr. {doctor.last_name}!", "success")
         return redirect(url_for("dashboard"))

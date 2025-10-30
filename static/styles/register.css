@@ -169,3 +169,12 @@ button:hover {
     color: #856404;
     border: 1px solid #ffeaa7;
 }
+
+.password-strength {
+    height: 5px;
+    margin-top: 5px;
+    border-radius: 3px;
+}
+.strength-weak { background-color: #dc3545; }
+.strength-medium { background-color: #ffc107; }
+.strength-strong { background-color: #28a745; }
