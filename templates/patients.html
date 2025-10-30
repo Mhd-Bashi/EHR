@@ -244,7 +244,6 @@
         
         .history-item {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             padding: 2px 0;
             border-bottom: 1px solid #f0f0f0;
@@ -263,6 +262,7 @@
         .history-date {
             color: #6c757d;
             font-size: 0.6rem;
+            margin-left: 10px;
         }
         
         .records-cell {
@@ -419,6 +419,19 @@
             background-color: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+
+        .footer {
+            margin: 0;
+            padding: 16px 0;
+            box-shadow: none !important;
+            background-color: transparent !important;
+        }
+
+        footer{
+
+            display: flex;
+            justify-content: center;
         }
         
         @media (max-width: 768px) {
@@ -679,7 +692,7 @@
         </div>
         
         {% if patients %}
-            <div style="text-align: center; margin-top: 20px; color: #666;">
+            <div style="text-align: center; padding-bottom: 20px; color: #666;">
                 Showing {{ patients|length }} patient{{ 's' if patients|length != 1 else '' }}
             </div>
         {% endif %}

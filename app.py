@@ -32,30 +32,29 @@ db.init_app(app)
 init_mail(app)
 
 # File upload configuration
-UPLOAD_FOLDER = 'static/uploads/radiology'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'dcm', 'dicom'}
+UPLOAD_FOLDER = "static/uploads/radiology"
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "bmp", "tiff", "dcm", "dicom"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE
 
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def generate_unique_filename(filename):
     """Generate unique filename to prevent conflicts"""
-    if filename == '':
+    if filename == "":
         return None
-    
+
     # Get file extension
-    file_ext = ''
-    if '.' in filename:
-        file_ext = '.' + filename.rsplit('.', 1)[1].lower()
-    
+    file_ext = ""
+    if "." in filename:
+        file_ext = "." + filename.rsplit(".", 1)[1].lower()
+
     # Generate unique filename using UUID
     unique_filename = str(uuid.uuid4()) + file_ext
     return unique_filename
@@ -68,13 +67,15 @@ def save_uploaded_file(file, patient_id):
         filename = generate_unique_filename(file.filename)
         if filename:
             # Create patient-specific subdirectory
-            patient_dir = os.path.join(app.config['UPLOAD_FOLDER'], f'patient_{patient_id}')
+            patient_dir = os.path.join(
+                app.config["UPLOAD_FOLDER"], f"patient_{patient_id}"
+            )
             os.makedirs(patient_dir, exist_ok=True)
-            
+
             # Save file
             filepath = os.path.join(patient_dir, filename)
             file.save(filepath)
-            return f'patient_{patient_id}/{filename}'
+            return f"patient_{patient_id}/{filename}"
     return None
 
 
@@ -82,7 +83,7 @@ def delete_image_file(image_filename):
     """Delete image file from filesystem"""
     if image_filename:
         try:
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
+            filepath = os.path.join(app.config["UPLOAD_FOLDER"], image_filename)
             if os.path.exists(filepath):
                 os.remove(filepath)
                 return True
@@ -107,6 +108,8 @@ def validate_password(password):
         return False, "Password must contain at least one lowercase letter"
     if not re.search(r"\d", password):
         return False, "Password must contain at least one digit"
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        return False, "Password must contain at least one special character"
     return True, "Password is valid"
 
 
@@ -117,24 +120,64 @@ def send_confirmation_email(doctor):
         confirm_url = url_for("confirm_email", token=token, _external=True)
 
         html = f"""
-        <html>
-        <body>
-            <h2>Welcome to EHR System, Dr. {doctor.last_name}!</h2>
-            <p>Thank you for registering with our Electronic Health Records system.</p>
-            <p>Please click the link below to confirm your email address:</p>
-            <p><a href="{confirm_url}" style="background-color: #4CAF50;
-            color: white; padding: 14px 20px; text-decoration: none; display: inline-block;
-            border-radius: 4px;">Confirm Email</a></p>
-            <p>This link will expire in 24 hours.</p>
-            <p>If you didn't create this account, please ignore this email.</p>
-            <br>
-            <p>Best regards,<br>EHR System Team</p>
-        </body>
-        </html>
+       <!DOCTYPE html>
+<html>
+  <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f5f7fa;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td align="center" style="padding: 40px 0;">
+          <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+            <tr>
+              <td style="padding: 40px;">
+                <h2 style="color: #333333; margin-top: 0;">Welcome to <span style="color: #4CAF50;">VitalTrack EHR System</span>, <strong>Dr. {doctor.last_name}</strong>!</h2>
+                <p style="color: #555555; line-height: 1.6;">
+                  Thank you for registering with our <strong>Electronic Health Records</strong> system.
+                </p>
+                <p style="color: #555555; line-height: 1.6;">
+                  Please click the button below to confirm your email address:
+                </p>
+
+                <p style="text-align: center; margin: 30px 0;">
+                  <a href="{confirm_url}" 
+                    style="background-color: #4CAF50; 
+                           color: white; 
+                           padding: 14px 24px; 
+                           text-decoration: none; 
+                           border-radius: 6px; 
+                           font-weight: bold;
+                           display: inline-block;">
+                    Confirm Email
+                  </a>
+                </p>
+
+                <p style="color: #777777; font-size: 14px; line-height: 1.5;">
+                  This link will expire in <strong>24 hours</strong>.
+                  If you didn’t create this account, please ignore this email.
+                </p>
+
+                <hr style="border: none; border-top: 1px solid #eaeaea; margin: 30px 0;">
+
+                <p style="color: #555555; font-size: 14px;">
+                  Best regards,<br>
+                  <strong>VitalTrack EHR System Team</strong>
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <p style="font-size: 12px; color: #999999; margin-top: 20px;">
+            © 2025 VitalTrack EHR System. All rights reserved.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+
         """
 
         send_email(
-            subject="Confirm your EHR System account",
+            subject="Confirm your VitalTrack EHR System account",
             recipients=[doctor.email],
             html=html,
         )
@@ -221,21 +264,66 @@ def forgot_password():
         reset_url = url_for("reset_password", token=token, _external=True)
 
         html = f"""
-        <html>
-        <body>
-            <h2>Password Reset Request</h2>
-            <p>Hi Dr. {doctor.last_name},</p>
-            <p>To reset your password, please click the link below:</p>
-            <p><a href="{reset_url}">Reset Password</a></p>
-            <p>This link will expire in 24 hours.</p>
-            <br>
-            <p>Best regards,<br>EHR System Team</p>
-        </body>
-        </html>
+        <!DOCTYPE html>
+<html>
+  <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f5f7fa;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+      <tr>
+        <td align="center" style="padding: 40px 0;">
+          <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+            <tr>
+              <td style="padding: 40px;">
+                <h2 style="color: #333333; margin-top: 0;">Password Reset Request</h2>
+                <p style="color: #555555; line-height: 1.6;">
+                  Hi Dr. <strong>{doctor.last_name}</strong>,
+                </p>
+                <p style="color: #555555; line-height: 1.6;">
+                  We received a request to reset your password for <strong>VitalTrack EHR System</strong>.
+                </p>
+                <p style="color: #555555; line-height: 1.6;">
+                  To reset your password, please click the link below:
+                </p>
+
+                <p style="text-align: center; margin: 30px 0;">
+                  <a href="{reset_url}"
+                    style="background-color: #4CAF50; 
+                           color: white; 
+                           padding: 14px 24px;
+                           text-decoration: none;
+                           border-radius: 6px;
+                           font-weight: bold;
+                           display: inline-block;">
+                    Reset Password
+                  </a>
+                </p>
+
+                <p style="color: #777777; font-size: 14px; line-height: 1.5;">
+                  This link will expire in <strong>24 hours</strong>.
+                  If you didn’t request a password reset, please ignore this email.
+                </p>
+
+                <hr style="border: none; border-top: 1px solid #eaeaea; margin: 30px 0;">
+
+                <p style="color: #555555; font-size: 14px;">
+                  Best regards,<br>
+                  <strong>VitalTrack EHR System Team</strong>
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <p style="font-size: 12px; color: #999999; margin-top: 20px;">
+            © 2025 VitalTrack EHR System. All rights reserved.
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
         """
 
         send_email(
-            subject="Reset your EHR System password",
+            subject="Reset your VitalTrack EHR System password",
             recipients=[doctor.email],
             html=html,
         )
@@ -1244,12 +1332,12 @@ def logout():
 def doctor_profile():
     if "logged_in" not in session:
         return redirect(url_for("login"))
-    
+
     doctor = Doctor.query.get(session["doctor_id"])
     if not doctor:
         flash("Doctor profile not found.", "error")
         return redirect(url_for("dashboard"))
-    
+
     return render_template("doctor_profile.html", doctor=doctor)
 
 
@@ -1257,12 +1345,12 @@ def doctor_profile():
 def edit_doctor_profile():
     if "logged_in" not in session:
         return redirect(url_for("login"))
-    
+
     doctor = Doctor.query.get(session["doctor_id"])
     if not doctor:
         flash("Doctor profile not found.", "error")
         return redirect(url_for("dashboard"))
-    
+
     if request.method == "POST":
         try:
             # Update doctor information
@@ -1270,19 +1358,19 @@ def edit_doctor_profile():
             doctor.last_name = request.form["last_name"]
             doctor.phone_number = request.form["phone_number"]
             doctor.email = request.form["email"]
-            
+
             # Update session doctor name if last name changed
             session["doctor_name"] = f"Dr. {doctor.last_name}"
-            
+
             db.session.commit()
             flash("Profile updated successfully!", "success")
             return redirect(url_for("doctor_profile"))
-            
+
         except Exception as e:
             db.session.rollback()
             flash(f"Error updating profile: {str(e)}", "error")
             return render_template("edit_doctor_profile.html", doctor=doctor)
-    
+
     return render_template("edit_doctor_profile.html", doctor=doctor)
 
 
@@ -1785,6 +1873,7 @@ def delete_lab_result(lab_result_id):
 
 # ===== RADIOLOGY IMAGING ROUTES =====
 
+
 @app.route("/add_radiology_imaging", methods=["GET", "POST"])
 def add_radiology_imaging():
     """Add new radiology imaging record"""
@@ -1809,12 +1898,14 @@ def add_radiology_imaging():
                 errors.append("Imaging name is required")
             if not imaging_date:
                 errors.append("Imaging date is required")
-            
+
             # Handle file upload
-            image_file = request.files.get('image_file')
-            if image_file and image_file.filename != '':
+            image_file = request.files.get("image_file")
+            if image_file and image_file.filename != "":
                 if not allowed_file(image_file.filename):
-                    errors.append("Invalid file type. Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM")
+                    errors.append(
+                        "Invalid file type. Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM"
+                    )
 
             # Check if patient belongs to this doctor
             if patient_id:
@@ -1851,11 +1942,13 @@ def add_radiology_imaging():
                         .order_by(Patient.last_name)
                         .all()
                     )
-                    return render_template("add_radiology_imaging.html", patients=patients)
+                    return render_template(
+                        "add_radiology_imaging.html", patients=patients
+                    )
 
             # Handle file upload if present
             image_filename = None
-            if image_file and image_file.filename != '':
+            if image_file and image_file.filename != "":
                 image_filename = save_uploaded_file(image_file, int(patient_id))
                 if not image_filename:
                     errors.append("Failed to save uploaded image")
@@ -1866,7 +1959,9 @@ def add_radiology_imaging():
                         .order_by(Patient.last_name)
                         .all()
                     )
-                    return render_template("add_radiology_imaging.html", patients=patients)
+                    return render_template(
+                        "add_radiology_imaging.html", patients=patients
+                    )
 
             # Create new radiology imaging record
             new_imaging = RadiologyImaging(
@@ -1896,10 +1991,10 @@ def add_radiology_imaging():
     )
     selected_patient_id = request.args.get("patient_id", "")
     return render_template(
-            "add_radiology_imaging.html",
-            patients=patients,
-            selected_patient_id=selected_patient_id
-        )
+        "add_radiology_imaging.html",
+        patients=patients,
+        selected_patient_id=selected_patient_id,
+    )
 
 
 @app.route("/view_radiology_imaging")
@@ -1979,12 +2074,14 @@ def edit_radiology_imaging(imaging_id):
                 errors.append("Imaging name is required")
             if not imaging_date:
                 errors.append("Imaging date is required")
-            
+
             # Handle file upload
-            image_file = request.files.get('image_file')
-            if image_file and image_file.filename != '':
+            image_file = request.files.get("image_file")
+            if image_file and image_file.filename != "":
                 if not allowed_file(image_file.filename):
-                    errors.append("Invalid file type. Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM")
+                    errors.append(
+                        "Invalid file type. Allowed formats: PNG, JPG, JPEG, GIF, BMP, TIFF, DCM, DICOM"
+                    )
 
             if errors:
                 for error in errors:
@@ -2001,10 +2098,12 @@ def edit_radiology_imaging(imaging_id):
                     imaging_datetime = datetime.strptime(imaging_date, "%Y-%m-%d")
                 except ValueError:
                     flash("Invalid date format", "error")
-                    return render_template("edit_radiology_imaging.html", imaging=imaging)
+                    return render_template(
+                        "edit_radiology_imaging.html", imaging=imaging
+                    )
 
             # Handle image replacement if new file uploaded
-            if image_file and image_file.filename != '':
+            if image_file and image_file.filename != "":
                 # Save new image
                 new_image_filename = save_uploaded_file(image_file, imaging.patient_id)
                 if new_image_filename:
@@ -2015,7 +2114,9 @@ def edit_radiology_imaging(imaging_id):
                     imaging.image_filename = new_image_filename
                 else:
                     flash("Failed to save uploaded image", "error")
-                    return render_template("edit_radiology_imaging.html", imaging=imaging)
+                    return render_template(
+                        "edit_radiology_imaging.html", imaging=imaging
+                    )
 
             # Update the imaging record
             imaging.name = imaging_name
@@ -2090,29 +2191,31 @@ def radiology_image(filename):
         return redirect(url_for("login"))
 
     doctor_id = session.get("doctor_id")
-    
+
     # Extract patient ID from filename path (format: patient_X/filename.ext)
     try:
-        if '/' in filename:
-            patient_folder, image_name = filename.split('/', 1)
-            patient_id = int(patient_folder.replace('patient_', ''))
-            
+        if "/" in filename:
+            patient_folder, image_name = filename.split("/", 1)
+            patient_id = int(patient_folder.replace("patient_", ""))
+
             # Verify that this patient belongs to the logged-in doctor
-            patient = Patient.query.filter_by(id=patient_id, doctor_id=doctor_id).first()
+            patient = Patient.query.filter_by(
+                id=patient_id, doctor_id=doctor_id
+            ).first()
             if not patient:
                 flash("Access denied to this image.", "error")
                 return redirect(url_for("view_radiology_imaging"))
-                
+
             # Serve the file
             from flask import send_from_directory
+
             return send_from_directory(
-                os.path.join(app.config['UPLOAD_FOLDER'], patient_folder), 
-                image_name
+                os.path.join(app.config["UPLOAD_FOLDER"], patient_folder), image_name
             )
         else:
             flash("Invalid image path.", "error")
             return redirect(url_for("view_radiology_imaging"))
-            
+
     except (ValueError, IndexError):
         flash("Invalid image path.", "error")
         return redirect(url_for("view_radiology_imaging"))

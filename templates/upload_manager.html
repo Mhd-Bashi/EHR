@@ -1,0 +1,346 @@
+<!-- templates/upload_manager.html -->
+{% extends "base.html" %}
+{% block title %}Upload Manager - EHR System{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/forms.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-1"><i class="bi bi-cloud-upload text-primary"></i> File Upload Manager</h1>
+                    <p class="text-muted">Manage radiology images, documents, and patient files</p>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-plus-circle"></i> Upload Files
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('add_radiology_imaging') }}">
+                            <i class="bi bi-camera"></i> Radiology Image
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#documentUploadModal">
+                            <i class="bi bi-file-earmark-text"></i> Patient Document
+                        </a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
+                            <i class="bi bi-files"></i> Bulk Upload
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ recent_radiology|length }}</h4>
+                            <span>Recent Radiology</span>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-camera fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>{{ recent_documents|length }}</h4>
+                            <span>Recent Documents</span>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-file-earmark-text fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>--</h4>
+                            <span>Storage Used</span>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-hdd fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h4>--</h4>
+                            <span>Pending Uploads</span>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-hourglass-split fs-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Uploads Tabs -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-bs-toggle="tab" href="#radiologyTab">
+                                <i class="bi bi-camera"></i> Recent Radiology
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-bs-toggle="tab" href="#documentsTab">
+                                <i class="bi bi-file-earmark-text"></i> Recent Documents
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content">
+                        <!-- Radiology Tab -->
+                        <div class="tab-pane fade show active" id="radiologyTab">
+                            {% if recent_radiology %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Preview</th>
+                                                <th>Patient</th>
+                                                <th>Exam Type</th>
+                                                <th>Date</th>
+                                                <th>File Size</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for radiology in recent_radiology %}
+                                            <tr>
+                                                <td>
+                                                    {% if radiology.image_filename %}
+                                                        <img src="{{ radiology.get_image_url() }}" 
+                                                             class="img-thumbnail" 
+                                                             style="width: 50px; height: 50px; object-fit: cover;"
+                                                             alt="Radiology Preview">
+                                                    {% else %}
+                                                        <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                             style="width: 50px; height: 50px;">
+                                                            <i class="bi bi-image text-muted"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <strong>{{ radiology.patient.first_name }} {{ radiology.patient.last_name }}</strong><br>
+                                                    <small class="text-muted">ID: {{ radiology.patient.id }}</small>
+                                                </td>
+                                                <td>{{ radiology.exam_type }}<br>
+                                                    <small class="text-muted">{{ radiology.body_part }}</small>
+                                                </td>
+                                                <td>{{ radiology.exam_date.strftime('%m/%d/%Y') }}</td>
+                                                <td>
+                                                    {% if radiology.file_size %}
+                                                        {{ radiology.get_file_size_formatted() }}
+                                                    {% else %}
+                                                        <span class="text-muted">--</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{{ url_for('view_radiology_imaging', id=radiology.id) }}" 
+                                                           class="btn btn-outline-primary">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                        <a href="#" class="btn btn-outline-secondary">
+                                                            <i class="bi bi-download"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="bi bi-camera fs-1 text-muted mb-3"></i>
+                                    <h5 class="text-muted">No radiology images uploaded yet</h5>
+                                    <a href="{{ url_for('add_radiology_imaging') }}" class="btn btn-primary">
+                                        <i class="bi bi-plus-circle"></i> Upload First Image
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Documents Tab -->
+                        <div class="tab-pane fade" id="documentsTab">
+                            {% if recent_documents %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>Title</th>
+                                                <th>Patient</th>
+                                                <th>Upload Date</th>
+                                                <th>File Size</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for document in recent_documents %}
+                                            <tr>
+                                                <td>
+                                                    <span class="badge bg-secondary">{{ document.document_type }}</span>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ document.title }}</strong><br>
+                                                    {% if document.description %}
+                                                        <small class="text-muted">{{ document.description[:50] }}...</small>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ document.patient.first_name }} {{ document.patient.last_name }}</td>
+                                                <td>{{ document.upload_date.strftime('%m/%d/%Y %I:%M %p') }}</td>
+                                                <td>
+                                                    {% if document.file_size %}
+                                                        {% set size = document.file_size %}
+                                                        {% if size < 1024 %}
+                                                            {{ size }} B
+                                                        {% elif size < 1048576 %}
+                                                            {{ "%.1f"|format(size/1024) }} KB
+                                                        {% else %}
+                                                            {{ "%.1f"|format(size/1048576) }} MB
+                                                        {% endif %}
+                                                    {% else %}
+                                                        <span class="text-muted">--</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="/uploads/documents/{{ document.filename }}" 
+                                                           class="btn btn-outline-primary" target="_blank">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                        <a href="/uploads/documents/{{ document.filename }}" 
+                                                           class="btn btn-outline-secondary" download>
+                                                            <i class="bi bi-download"></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="bi bi-file-earmark-text fs-1 text-muted mb-3"></i>
+                                    <h5 class="text-muted">No documents uploaded yet</h5>
+                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#documentUploadModal">
+                                        <i class="bi bi-plus-circle"></i> Upload First Document
+                                    </button>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Upload Modal -->
+<div class="modal fade" id="documentUploadModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-file-earmark-plus"></i> Upload Patient Document
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="documentUploadForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Document Type</label>
+                            <select class="form-select" name="document_type" required>
+                                <option value="">Select Type...</option>
+                                <option value="Insurance Card">Insurance Card</option>
+                                <option value="Referral">Referral</option>
+                                <option value="Lab Report">Lab Report</option>
+                                <option value="Discharge Summary">Discharge Summary</option>
+                                <option value="Consultation Note">Consultation Note</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Patient</label>
+                            <select class="form-select" name="patient_id" required>
+                                <option value="">Select Patient...</option>
+                                <!-- This would be populated via AJAX -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Document Title</label>
+                        <input type="text" class="form-control" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Description (Optional)</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">File</label>
+                        <input type="file" class="form-control" name="document_file" 
+                               accept=".pdf,.doc,.docx,.txt,.rtf" required>
+                        <div class="form-text">Supported formats: PDF, DOC, DOCX, TXT, RTF (Max 10MB)</div>
+                    </div>
+                    
+                    <!-- Upload Progress -->
+                    <div class="progress d-none" id="uploadProgress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload Document
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
