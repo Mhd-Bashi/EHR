@@ -19,7 +19,7 @@ from models import (
     AppointmentStatusEnum,
     MedicalHistory,
     Allergy,
-    doctor_specialty
+    doctor_specialty,
 )
 from utils.mail_helper import mail, init_mail, send_email
 from utils.token_holper import generate_token, load_token
@@ -251,7 +251,11 @@ def login_user():
         session["doctor_id"] = doctor.id
         session["doctor_name"] = f"Dr. {doctor.last_name}"
         session["logged_in"] = True
-        session['doctor_specialty'] = ", ".join([s[0] for s in doctor_specialities]) if doctor_specialities else 'General'
+        session["doctor_specialty"] = (
+            ", ".join([s[0] for s in doctor_specialities])
+            if doctor_specialities
+            else "General"
+        )
 
         flash(f"Welcome back, Dr. {doctor.last_name}!", "success")
         return redirect(url_for("dashboard"))
