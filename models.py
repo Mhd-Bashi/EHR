@@ -84,9 +84,9 @@ class GenderEnum(enum.Enum):
 
 
 class AppointmentStatusEnum(enum.Enum):
-    SCHEDULED = "Scheduled"
-    COMPLETED = "Completed"
-    CANCELLED = "Cancelled"
+    SCHEDULED = "scheduled"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
 
 
 class Patient(db.Model):

@@ -82,7 +82,7 @@
         .nav-menu {
             display: flex;
             list-style: none;
-            margin: 0 50px 0 0;
+            margin: 0 30px 0 0;
             padding: 0;
             align-items: center;
             font-size: 0.9rem;
@@ -530,7 +530,7 @@
                 <li class="nav-item">
                     <a href="{{ url_for('about_us') }}" 
                        class="nav-link {% if request.endpoint == 'about_us' %}active{% endif %}">
-                        About Us
+                       <i class="bi bi-info-circle"></i> About Us
                     </a>
                 </li>
             </ul>

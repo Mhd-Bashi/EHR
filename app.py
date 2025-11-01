@@ -1165,7 +1165,7 @@ def edit_appointment(appointment_id):
             # Get form data
             appointment_date = request.form.get("appointment_date", "").strip()
             appointment_time = request.form.get("appointment_time", "").strip()
-            status = request.form.get("status", "").strip()
+            status = request.form.get("status", "").strip().lower()
             notes = request.form.get("notes", "").strip()
 
             # Validation

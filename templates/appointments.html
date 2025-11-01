@@ -355,7 +355,6 @@
                         <th>Patient</th>
                         <th>Date & Time</th>
                         <th>Status</th>
-                        <th>Duration</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -396,15 +395,6 @@
                                 <span class="status-badge status-{{ appointment.status.value.lower() }}">
                                     {{ appointment.status.value }}
                                 </span>
-                            </td>
-                            <td>
-                                {% if appointment.status.value == 'Completed' %}
-                                    <span style="color: #28a745; font-weight: 500;">1 hour</span>
-                                {% elif appointment.status.value == 'Scheduled' %}
-                                    <span style="color: #ffc107; font-weight: 500;">Scheduled</span>
-                                {% else %}
-                                    <span style="color: #dc3545; font-weight: 500;">Cancelled</span>
-                                {% endif %}
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm" role="group">
