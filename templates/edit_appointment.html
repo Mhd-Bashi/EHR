@@ -126,13 +126,13 @@
 
                         <div class="form-group">
                             <div class="btn-group-custom">
-                                <button type="submit" class="btn btn-success">
+                                <button type="submit" class="btn btn-success" style="color: white;">
                                     <i class="fas fa-save"></i> Update Appointment
                                 </button>
-                                <a href="{{ url_for('view_appointment', appointment_id=appointment.id) }}" class="btn btn-secondary">
+                                <a href="{{ url_for('view_appointment', appointment_id=appointment.id) }}" class="btn btn-secondary" style="color: white;">
                                     <i class="fas fa-times"></i> Cancel
                                 </a>
-                                <a href="{{ url_for('view_appointments') }}" class="btn btn-primary">
+                                <a href="{{ url_for('view_appointments') }}" class="btn btn-primary" style="color: white;">
                                     <i class="fas fa-arrow-left"></i> Back to Appointments
                                 </a>
                             </div>
@@ -166,7 +166,7 @@
                         <div class="col-md-6">
                             <h6 class="text-muted">Appointment History</h6>
                             <p><strong>Created:</strong> {{ appointment.created_at.strftime('%B %d, %Y at %I:%M %p') if appointment.created_at else 'N/A' }}</p>
-                            <p><strong>Original Date:</strong> {{ appointment.date.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                            <p><strong>Updated:</strong> {{ appointment.updated_at.strftime('%B %d, %Y at %I:%M %p') if appointment.updated_at else 'N/A' }}</p>
                         </div>
                     </div>
                 </div>
