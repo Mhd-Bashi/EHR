@@ -277,6 +277,34 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/about_us")
+def about_us():
+    """Display about us page"""
+
+    try:
+        # Get system statistics
+        total_patients = Patient.query.count()
+        total_appointments = Appointment.query.count()
+        total_lab_results = LaboratoryResult.query.count()
+        total_imagings = RadiologyImaging.query.count()
+        total_doctors = Doctor.query.count()
+        system_stats = {
+            "total_patients": total_patients,
+            "total_appointments": total_appointments,
+            "total_lab_results": total_lab_results,
+            "total_imagings": total_imagings,
+            "total_doctors": total_doctors,
+        }
+
+        return render_template(
+            "about_us.html", system_stats=system_stats, datetime=datetime
+        )
+
+    except Exception as e:
+        flash(f"Error loading about page: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -951,7 +979,12 @@ def schedule_appointment():
             patient_id = request.form.get("patient_id", "").strip()
             appointment_date = request.form.get("appointment_date", "").strip()
             appointment_time = request.form.get("appointment_time", "").strip()
-            appointment_type = request.form.get("appointment_type", "").strip().lower().replace("-", "_")
+            appointment_type = (
+                request.form.get("appointment_type", "")
+                .strip()
+                .lower()
+                .replace("-", "_")
+            )
             notes = request.form.get("notes", "").strip()
 
             # Validation
@@ -1005,7 +1038,9 @@ def schedule_appointment():
                 doctor_id=doctor_id,
                 date=appointment_datetime,
                 status=AppointmentStatusEnum.SCHEDULED,
-                appointment_type=AppointmentTypeEnum(appointment_type) if appointment_type else None,
+                appointment_type=(
+                    AppointmentTypeEnum(appointment_type) if appointment_type else None
+                ),
                 notes=notes if notes else None,
             )
 
@@ -1102,7 +1137,12 @@ def edit_appointment(appointment_id):
             appointment_date = request.form.get("appointment_date", "").strip()
             appointment_time = request.form.get("appointment_time", "").strip()
             status = request.form.get("status", "").strip().lower().replace("-", "_")
-            appointment_type = request.form.get("appointment_type", "").strip().lower().replace("-", "_")
+            appointment_type = (
+                request.form.get("appointment_type", "")
+                .strip()
+                .lower()
+                .replace("-", "_")
+            )
             notes = request.form.get("notes", "").strip()
 
             # Validation
@@ -1162,9 +1202,13 @@ def edit_appointment(appointment_id):
 
             # Update appointment
             appointment.date = appointment_datetime
-            appointment.status = AppointmentStatusEnum(status) if status else appointment.status
+            appointment.status = (
+                AppointmentStatusEnum(status) if status else appointment.status
+            )
             appointment.appointment_type = (
-                AppointmentTypeEnum(appointment_type) if appointment_type else appointment.appointment_type
+                AppointmentTypeEnum(appointment_type)
+                if appointment_type
+                else appointment.appointment_type
             )
             appointment.notes = notes if notes else None
             db.session.commit()
@@ -1660,43 +1704,6 @@ def add_medical_history():
         allergies=allergies,
         selected_patient_id=selected_patient_id,
     )
-
-
-@app.route("/about_us")
-def about_us():
-    """Display about us page"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get system statistics
-        total_patients = Patient.query.filter_by(doctor_id=doctor_id).count()
-        total_appointments = Appointment.query.filter_by(doctor_id=doctor_id).count()
-        total_lab_results = (
-            db.session.query(LaboratoryResult)
-            .join(Patient)
-            .filter(Patient.doctor_id == doctor_id)
-            .count()
-        )
-        active_doctors = 1  # Current doctor
-
-        system_stats = {
-            "total_patients": total_patients,
-            "total_appointments": total_appointments,
-            "total_lab_results": total_lab_results,
-            "active_doctors": active_doctors,
-        }
-
-        return render_template(
-            "about_us.html", system_stats=system_stats, datetime=datetime
-        )
-
-    except Exception as e:
-        flash(f"Error loading about page: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
 
 
 @app.route("/doctor_profile")
