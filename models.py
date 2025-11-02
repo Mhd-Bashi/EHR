@@ -87,6 +87,25 @@ class AppointmentStatusEnum(enum.Enum):
     SCHEDULED = "scheduled"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    NO_SHOW = "no_show"
+
+
+class AppointmentTypeEnum(enum.Enum):
+    CONSULTATION = "consultation"
+    FOLLOW_UP = "follow_up"
+    EMERGENCY = "emergency"
+    CHECK_UP = "check_up"
+    SURGERY = "surgery"
+    PROCEDURE = "procedure"
+
+
+class LabResultStatusEnum(enum.Enum):
+    NORMAL = "normal"
+    ABNORMAL = "abnormal"
+    HIGH = "high"
+    LOW = "low"
+    CRITICAL = "critical"
+    PENDING = "pending"
 
 
 class Patient(db.Model):
@@ -159,7 +178,8 @@ class Patient(db.Model):
         cascade="all, delete-orphan",
         lazy=True,
     )
-
+    # secondary is used to define many-to-many relationships in SQLAlchemy.
+    # Here, it links Patient to Allergy through the MedicalHistory table.
     allergies = db.relationship("Allergy", secondary="medical_history", viewonly=True)
 
     def __repr__(self):
@@ -176,13 +196,13 @@ class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey("doctor.id"), nullable=False)
-
+    appointment_type = db.Column(Enum(AppointmentTypeEnum, name="appointment_type_enum"), nullable=True)
     date = db.Column(db.DateTime, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
     )
-
+    notes = db.Column(db.Text, nullable=True)
     status = db.Column(
         Enum(AppointmentStatusEnum, name="appointment_status_enum"),
         nullable=False,
@@ -275,8 +295,16 @@ class LaboratoryResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"), nullable=False)
     test_name = db.Column(db.String(100), nullable=False)
-    result = db.Column(db.String(200), nullable=False)
     date = db.Column(db.DateTime, nullable=False, index=True)
+    result = db.Column(db.String(200), nullable=False)
+    unit = db.Column(db.String(50), nullable=True)
+    reference_range = db.Column(db.String(100), nullable=True)
+    status = db.Column(Enum(LabResultStatusEnum, name="lab_status_enum"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+    notes = db.Column(db.Text, nullable=True)
 
     patient = db.relationship("Patient", back_populates="laboratory_results")
 

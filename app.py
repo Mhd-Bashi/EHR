@@ -1,4 +1,5 @@
 from flask import Flask, request, redirect, url_for, flash, render_template, session
+from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, date
@@ -19,6 +20,8 @@ from models import (
     AppointmentStatusEnum,
     MedicalHistory,
     Allergy,
+    AppointmentTypeEnum,
+    LabResultStatusEnum,
     doctor_specialty,
 )
 from utils.mail_helper import mail, init_mail, send_email
@@ -29,6 +32,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 
 # Initialize extensions
+migrate = Migrate(app, db)
 db.init_app(app)
 init_mail(app)
 
@@ -265,6 +269,14 @@ def login_user():
         return redirect(url_for("login"))
 
 
+@app.route("/logout")
+def logout():
+    # Clear session
+    session.clear()
+    flash("You have been logged out successfully.", "info")
+    return redirect(url_for("login"))
+
+
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
     if request.method == "POST":
@@ -460,6 +472,91 @@ def dashboard():
     )
 
 
+# Patients routes
+@app.route("/patients")
+def view_all_patients():
+    """Display all patients in a table"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    try:
+        # Get all patients for this doctor with their demographic info
+        patients_query = Patient.query.filter_by(doctor_id=doctor_id).order_by(
+            Patient.last_name, Patient.first_name
+        )
+        patients = patients_query.all()
+
+        # Get patient statistics
+        total_patients = len(patients)
+        male_patients = sum(1 for p in patients if p.gender == GenderEnum.MALE)
+        female_patients = sum(1 for p in patients if p.gender == GenderEnum.FEMALE)
+        other_patients = total_patients - male_patients - female_patients
+
+        # Calculate age groups
+        current_date = date.today()
+        age_groups = {"0-18": 0, "19-35": 0, "36-50": 0, "51-65": 0, "65+": 0}
+
+        for patient in patients:
+            if patient.date_of_birth:
+                age = (current_date - patient.date_of_birth).days // 365
+                if age <= 18:
+                    age_groups["0-18"] += 1
+                elif age <= 35:
+                    age_groups["19-35"] += 1
+                elif age <= 50:
+                    age_groups["36-50"] += 1
+                elif age <= 65:
+                    age_groups["51-65"] += 1
+                else:
+                    age_groups["65+"] += 1
+
+        # Get appointment, lab result, and medical history counts for each patient
+        for patient in patients:
+            patient.appointment_count = Appointment.query.filter_by(
+                patient_id=patient.id
+            ).count()
+            patient.lab_result_count = LaboratoryResult.query.filter_by(
+                patient_id=patient.id
+            ).count()
+            patient.radiology_result_count = RadiologyImaging.query.filter_by(
+                patient_id=patient.id
+            ).count()
+            patient.medical_history_count = MedicalHistory.query.filter_by(
+                patient_id=patient.id
+            ).count()
+
+            # Get recent medical histories with allergy information
+            patient.recent_medical_histories = (
+                db.session.query(MedicalHistory, Allergy)
+                .join(Allergy, MedicalHistory.allergy_id == Allergy.id)
+                .filter(MedicalHistory.patient_id == patient.id)
+                .order_by(MedicalHistory.date.desc())
+                .limit(3)
+                .all()
+            )
+
+        # Calculate patients with medical history
+        patients_with_history = sum(1 for p in patients if p.medical_history_count > 0)
+
+        stats = {
+            "total_patients": total_patients,
+            "male_patients": male_patients,
+            "female_patients": female_patients,
+            "other_patients": other_patients,
+            "age_groups": age_groups,
+            "patients_with_history": patients_with_history,
+        }
+
+        return render_template("patients.html", patients=patients, stats=stats)
+
+    except Exception as e:
+        flash(f"Error loading patients: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
 @app.route("/add_patient", methods=["GET", "POST"])
 def add_patient():
     # Check if user is logged in
@@ -476,7 +573,7 @@ def add_patient():
             last_name = request.form.get("last_name", "").strip()
             email = request.form.get("email", "").strip()
             age = request.form.get("age", "").strip()
-            gender = request.form.get("gender", "").strip()
+            gender = request.form.get("gender", "").strip().lower()
             date_of_birth = request.form.get("date_of_birth", "").strip()
             phone_number = request.form.get("phone_number", "").strip()
             address = request.form.get("address", "").strip()
@@ -568,1007 +665,6 @@ def add_patient():
             return render_template("add_patient.html")
 
     return render_template("add_patient.html")
-
-
-@app.route("/schedule_appointment", methods=["GET", "POST"])
-def schedule_appointment():
-    # Check if user is logged in
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    if request.method == "POST":
-        try:
-            # Get form data
-            patient_id = request.form.get("patient_id", "").strip()
-            appointment_date = request.form.get("appointment_date", "").strip()
-            appointment_time = request.form.get("appointment_time", "").strip()
-
-            # Validation
-            errors = []
-            if not patient_id:
-                errors.append("Please select a patient")
-            if not appointment_date:
-                errors.append("Appointment date is required")
-            if not appointment_time:
-                errors.append("Appointment time is required")
-
-            # Check if patient belongs to this doctor
-            if patient_id:
-                patient = Patient.query.filter_by(
-                    id=patient_id, doctor_id=doctor_id
-                ).first()
-                if not patient:
-                    errors.append("Invalid patient selection")
-
-            if errors:
-                for error in errors:
-                    flash(error, "error")
-                patients = (
-                    Patient.query.filter_by(doctor_id=doctor_id)
-                    .order_by(Patient.last_name)
-                    .all()
-                )
-                return render_template("schedule_appointment.html", patients=patients)
-
-            # Create appointment datetime
-            from datetime import datetime
-
-            appointment_datetime = datetime.strptime(
-                f"{appointment_date} {appointment_time}", "%Y-%m-%d %H:%M"
-            )
-
-            # Check for existing appointment at same time
-            existing_appointment = Appointment.query.filter_by(
-                doctor_id=doctor_id, date=appointment_datetime
-            ).first()
-
-            if existing_appointment:
-                flash("You already have an appointment at this date and time.", "error")
-                patients = (
-                    Patient.query.filter_by(doctor_id=doctor_id)
-                    .order_by(Patient.last_name)
-                    .all()
-                )
-                return render_template("schedule_appointment.html", patients=patients)
-
-            # Create new appointment
-            new_appointment = Appointment(
-                patient_id=int(patient_id),
-                doctor_id=doctor_id,
-                date=appointment_datetime,
-                status=AppointmentStatusEnum.SCHEDULED,
-            )
-
-            db.session.add(new_appointment)
-            db.session.commit()
-
-            patient = Patient.query.get(patient_id)
-            flash(
-                f"Appointment scheduled for {patient.first_name} {patient.last_name}!",
-                "success",
-            )
-            flash(
-                f'Date and time: {appointment_datetime.strftime("%Y-%m-%d at %H:%M")}',
-                "info",
-            )
-            return redirect(url_for("dashboard"))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error scheduling appointment: {str(e)}", "error")
-            patients = (
-                Patient.query.filter_by(doctor_id=doctor_id)
-                .order_by(Patient.last_name)
-                .all()
-            )
-            return render_template("schedule_appointment.html", patients=patients)
-
-    # Get patients for dropdown
-    patients = (
-        Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
-    )
-    # Get pre-selected patient ID from URL parameter
-    selected_patient_id = request.args.get("patient_id")
-    return render_template(
-        "schedule_appointment.html",
-        patients=patients,
-        selected_patient_id=selected_patient_id,
-    )
-
-
-@app.route("/add_lab_result", methods=["GET", "POST"])
-def add_lab_result():
-    # Check if user is logged in
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    if request.method == "POST":
-        try:
-            # Get form data
-            patient_id = request.form.get("patient_id", "").strip()
-            test_name = request.form.get("test_name", "").strip()
-            result = request.form.get("result", "").strip()
-            test_date = request.form.get("test_date", "").strip()
-
-            # Validation
-            errors = []
-            if not patient_id:
-                errors.append("Please select a patient")
-            if not test_name:
-                errors.append("Test name is required")
-            if not result:
-                errors.append("Result is required")
-            if not test_date:
-                errors.append("Test date is required")
-
-            # Check if patient belongs to this doctor
-            if patient_id:
-                patient = Patient.query.filter_by(
-                    id=patient_id, doctor_id=doctor_id
-                ).first()
-                if not patient:
-                    errors.append("Invalid patient selection")
-
-            if errors:
-                for error in errors:
-                    flash(error, "error")
-                patients = (
-                    Patient.query.filter_by(doctor_id=doctor_id)
-                    .order_by(Patient.last_name)
-                    .all()
-                )
-                return render_template("add_lab_result.html", patients=patients)
-
-            # Create test datetime
-            try:
-                # Try datetime-local format first (YYYY-MM-DDTHH:MM)
-                test_datetime = datetime.strptime(test_date, "%Y-%m-%dT%H:%M")
-            except ValueError:
-                try:
-                    # Try date-only format (YYYY-MM-DD)
-                    test_datetime = datetime.strptime(test_date, "%Y-%m-%d")
-                except ValueError:
-                    errors.append("Invalid date format")
-                    for error in errors:
-                        flash(error, "error")
-                    patients = (
-                        Patient.query.filter_by(doctor_id=doctor_id)
-                        .order_by(Patient.last_name)
-                        .all()
-                    )
-                    return render_template("add_lab_result.html", patients=patients)
-
-            # Create new lab result
-            new_lab_result = LaboratoryResult(
-                patient_id=int(patient_id),
-                test_name=test_name,
-                result=result,
-                date=test_datetime,
-            )
-
-            db.session.add(new_lab_result)
-            db.session.commit()
-
-            patient = Patient.query.get(patient_id)
-            flash(
-                f"Lab result added for {patient.first_name} {patient.last_name}: {test_name}",
-                "success",
-            )
-            return redirect(url_for("dashboard"))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error adding lab result: {str(e)}", "error")
-            patients = (
-                Patient.query.filter_by(doctor_id=doctor_id)
-                .order_by(Patient.last_name)
-                .all()
-            )
-            return render_template("add_lab_result.html", patients=patients)
-
-    # Get patients for dropdown
-    patients = (
-        Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
-    )
-    # Get pre-selected patient ID from URL parameter
-    selected_patient_id = request.args.get("patient_id")
-    return render_template(
-        "add_lab_result.html",
-        patients=patients,
-        selected_patient_id=selected_patient_id,
-    )
-
-
-@app.route("/patients")
-def view_all_patients():
-    """Display all patients in a table"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get all patients for this doctor with their demographic info
-        patients_query = Patient.query.filter_by(doctor_id=doctor_id).order_by(
-            Patient.last_name, Patient.first_name
-        )
-        patients = patients_query.all()
-
-        # Get patient statistics
-        total_patients = len(patients)
-        male_patients = sum(1 for p in patients if p.gender == GenderEnum.MALE)
-        female_patients = sum(1 for p in patients if p.gender == GenderEnum.FEMALE)
-        other_patients = total_patients - male_patients - female_patients
-
-        # Calculate age groups
-        current_date = date.today()
-        age_groups = {"0-18": 0, "19-35": 0, "36-50": 0, "51-65": 0, "65+": 0}
-
-        for patient in patients:
-            if patient.date_of_birth:
-                age = (current_date - patient.date_of_birth).days // 365
-                if age <= 18:
-                    age_groups["0-18"] += 1
-                elif age <= 35:
-                    age_groups["19-35"] += 1
-                elif age <= 50:
-                    age_groups["36-50"] += 1
-                elif age <= 65:
-                    age_groups["51-65"] += 1
-                else:
-                    age_groups["65+"] += 1
-
-        # Get appointment, lab result, and medical history counts for each patient
-        for patient in patients:
-            patient.appointment_count = Appointment.query.filter_by(
-                patient_id=patient.id
-            ).count()
-            patient.lab_result_count = LaboratoryResult.query.filter_by(
-                patient_id=patient.id
-            ).count()
-            patient.radiology_result_count = RadiologyImaging.query.filter_by(
-                patient_id=patient.id
-            ).count()
-            patient.medical_history_count = MedicalHistory.query.filter_by(
-                patient_id=patient.id
-            ).count()
-
-            # Get recent medical histories with allergy information
-            patient.recent_medical_histories = (
-                db.session.query(MedicalHistory, Allergy)
-                .join(Allergy, MedicalHistory.allergy_id == Allergy.id)
-                .filter(MedicalHistory.patient_id == patient.id)
-                .order_by(MedicalHistory.date.desc())
-                .limit(3)
-                .all()
-            )
-
-        # Calculate patients with medical history
-        patients_with_history = sum(1 for p in patients if p.medical_history_count > 0)
-
-        stats = {
-            "total_patients": total_patients,
-            "male_patients": male_patients,
-            "female_patients": female_patients,
-            "other_patients": other_patients,
-            "age_groups": age_groups,
-            "patients_with_history": patients_with_history,
-        }
-
-        return render_template("patients.html", patients=patients, stats=stats)
-
-    except Exception as e:
-        flash(f"Error loading patients: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
-
-
-@app.route("/add_medical_history", methods=["GET", "POST"])
-def add_medical_history():
-    """Add medical history entry for a patient"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    if request.method == "POST":
-        try:
-            # Get form data
-            patient_id = request.form.get("patient_id", "").strip()
-            allergy_id = request.form.get("allergy_id", "").strip()
-            description = request.form.get("description", "").strip()
-            history_date = request.form.get("history_date", "").strip()
-
-            # Validation
-            errors = []
-            if not patient_id:
-                errors.append("Please select a patient")
-            if not allergy_id:
-                errors.append("Please select an allergy")
-            if not description:
-                errors.append("Description is required")
-            if not history_date:
-                errors.append("Date is required")
-
-            # Check if patient belongs to this doctor
-            if patient_id:
-                patient = Patient.query.filter_by(
-                    id=patient_id, doctor_id=doctor_id
-                ).first()
-                if not patient:
-                    errors.append("Invalid patient selection")
-
-            if errors:
-                for error in errors:
-                    flash(error, "error")
-                patients = (
-                    Patient.query.filter_by(doctor_id=doctor_id)
-                    .order_by(Patient.last_name)
-                    .all()
-                )
-                allergies = Allergy.query.order_by(Allergy.name).all()
-                return render_template(
-                    "add_medical_history.html", patients=patients, allergies=allergies
-                )
-
-            # Parse date
-
-            history_datetime = datetime.strptime(history_date, "%Y-%m-%d")
-
-            # Create new medical history entry
-            new_history = MedicalHistory(
-                patient_id=int(patient_id),
-                allergy_id=int(allergy_id),
-                description=description,
-                date=history_datetime,
-            )
-
-            db.session.add(new_history)
-            db.session.commit()
-
-            patient = Patient.query.get(patient_id)
-            allergy = Allergy.query.get(allergy_id)
-            flash(
-                f"Medical history added for {patient.first_name} {patient.last_name}!",
-                "success",
-            )
-            flash(f"Allergy: {allergy.name}", "info")
-            return redirect(url_for("view_all_patients"))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error adding medical history: {str(e)}", "error")
-            patients = (
-                Patient.query.filter_by(doctor_id=doctor_id)
-                .order_by(Patient.last_name)
-                .all()
-            )
-            allergies = Allergy.query.order_by(Allergy.name).all()
-            return render_template(
-                "add_medical_history.html", patients=patients, allergies=allergies
-            )
-
-    # Get patients and allergies for dropdowns
-    patients = (
-        Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
-    )
-
-    allergies = Allergy.query.order_by(Allergy.name).all()
-
-    # If no allergies exist, create common ones
-    if not allergies:
-        try:
-            common_allergies = [
-                (
-                    "Penicillin",
-                    "Antibiotic allergy - can cause rash, hives, or anaphylaxis",
-                ),
-                (
-                    "Peanuts",
-                    "Food allergy - can cause severe reactions, requires avoidance",
-                ),
-                ("Shellfish", "Food allergy - can cause mild to severe reactions"),
-                ("Dust Mites", "Environmental allergy - causes respiratory symptoms"),
-                ("Pollen", "Seasonal allergy - causes hay fever symptoms"),
-                ("Latex", "Contact allergy - causes skin and systemic reactions"),
-                ("Sulfa Drugs", "Medication allergy - can cause skin rashes and fever"),
-                (
-                    "Aspirin",
-                    "Medication allergy - causes respiratory or skin reactions",
-                ),
-                ("Eggs", "Food allergy - common in children, various symptoms"),
-                ("Dairy/Milk", "Food allergy - causes digestive and skin reactions"),
-                ("Other", "For allergies not listed above - specify in description"),
-            ]
-
-            for name, description in common_allergies:
-                allergy = Allergy(name=name, description=description)
-                db.session.add(allergy)
-
-            db.session.commit()
-            allergies = Allergy.query.order_by(Allergy.name).all()
-            flash("Common allergies have been added to the system.", "info")
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error creating allergies: {str(e)}", "error")
-    # Get pre-selected patient ID from URL parameter
-    selected_patient_id = request.args.get("patient_id")
-    return render_template(
-        "add_medical_history.html",
-        patients=patients,
-        allergies=allergies,
-        selected_patient_id=selected_patient_id,
-    )
-
-
-@app.route("/view_lab_results")
-def view_lab_results():
-    """Display all lab results"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get all lab results for patients of this doctor
-        lab_results_query = (
-            db.session.query(LaboratoryResult, Patient)
-            .join(Patient, LaboratoryResult.patient_id == Patient.id)
-            .filter(Patient.doctor_id == doctor_id)
-            .order_by(LaboratoryResult.date.desc())
-        )
-
-        lab_results = lab_results_query.all()
-
-        # Get statistics
-        total_results = len(lab_results)
-        recent_results = len(
-            [lr for lr, p in lab_results if (datetime.now() - lr.date).days <= 7]
-        )
-
-        # Get unique test types
-        test_types = set([lr.test_name for lr, p in lab_results])
-
-        stats = {
-            "total_results": total_results,
-            "recent_results": recent_results,
-            "test_types_count": len(test_types),
-            "test_types": sorted(list(test_types)),
-        }
-
-        return render_template(
-            "lab_results.html", lab_results=lab_results, stats=stats, datetime=datetime
-        )
-
-    except Exception as e:
-        print(f"Debug - Lab results error: {str(e)}")  # Add debug print
-        flash(f"Error loading lab results: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
-
-
-@app.route("/view_appointments")
-def view_appointments():
-    """Display all appointments"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get all appointments for this doctor
-        appointments = (
-            Appointment.query.filter_by(doctor_id=doctor_id)
-            .join(Patient)
-            .order_by(Appointment.date.desc())
-            .all()
-        )
-
-        # Get statistics
-        total_appointments = len(appointments)
-        upcoming_appointments = len(
-            [a for a in appointments if a.date > datetime.now()]
-        )
-        completed_appointments = len(
-            [a for a in appointments if a.status == AppointmentStatusEnum.COMPLETED]
-        )
-
-        # Get appointments by status
-        scheduled = len(
-            [a for a in appointments if a.status == AppointmentStatusEnum.SCHEDULED]
-        )
-        cancelled = len(
-            [a for a in appointments if a.status == AppointmentStatusEnum.CANCELLED]
-        )
-
-        stats = {
-            "total_appointments": total_appointments,
-            "upcoming_appointments": upcoming_appointments,
-            "completed_appointments": completed_appointments,
-            "scheduled_appointments": scheduled,
-            "cancelled_appointments": cancelled,
-        }
-
-        return render_template(
-            "appointments.html",
-            appointments=appointments,
-            stats=stats,
-            datetime=datetime,
-        )
-
-    except Exception as e:
-        flash(f"Error loading appointments: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
-
-
-@app.route("/view_appointment/<int:appointment_id>")
-def view_appointment(appointment_id):
-    """View a specific appointment"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get the appointment and ensure it belongs to this doctor
-        appointment = (
-            Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id)
-            .join(Patient)
-            .first()
-        )
-
-        if not appointment:
-            flash("Appointment not found or access denied.", "error")
-            return redirect(url_for("dashboard"))
-
-        return render_template(
-            "view_appointment.html", appointment=appointment, datetime=datetime
-        )
-
-    except Exception as e:
-        flash(f"Error loading appointment: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
-
-
-@app.route("/edit_appointment/<int:appointment_id>", methods=["GET", "POST"])
-def edit_appointment(appointment_id):
-    """Edit a specific appointment"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get the appointment and ensure it belongs to this doctor
-        appointment = (
-            Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id)
-            .join(Patient)
-            .first()
-        )
-
-        if not appointment:
-            flash("Appointment not found or access denied.", "error")
-            return redirect(url_for("dashboard"))
-
-        if request.method == "POST":
-            # Get form data
-            appointment_date = request.form.get("appointment_date", "").strip()
-            appointment_time = request.form.get("appointment_time", "").strip()
-            status = request.form.get("status", "").strip().lower()
-            notes = request.form.get("notes", "").strip()
-
-            # Validation
-            errors = []
-            if not appointment_date:
-                errors.append("Appointment date is required")
-            if not appointment_time:
-                errors.append("Appointment time is required")
-            if not status:
-                errors.append("Status is required")
-
-            if errors:
-                for error in errors:
-                    flash(error, "error")
-                patients = (
-                    Patient.query.filter_by(doctor_id=doctor_id)
-                    .order_by(Patient.last_name)
-                    .all()
-                )
-                return render_template(
-                    "edit_appointment.html",
-                    appointment=appointment,
-                    patients=patients,
-                    datetime=datetime,
-                )
-
-            # Create new appointment datetime
-            appointment_datetime = datetime.strptime(
-                f"{appointment_date} {appointment_time}", "%Y-%m-%d %H:%M"
-            )
-
-            # Check for existing appointment at same time (excluding current appointment)
-            existing_appointment = (
-                Appointment.query.filter_by(
-                    doctor_id=doctor_id, date=appointment_datetime
-                )
-                .filter(Appointment.id != appointment_id)
-                .first()
-            )
-
-            if existing_appointment:
-                flash(
-                    "You already have another appointment at this date and time.",
-                    "error",
-                )
-                patients = (
-                    Patient.query.filter_by(doctor_id=doctor_id)
-                    .order_by(Patient.last_name)
-                    .all()
-                )
-                return render_template(
-                    "edit_appointment.html",
-                    appointment=appointment,
-                    patients=patients,
-                    datetime=datetime,
-                )
-
-            # Update appointment
-            appointment.date = appointment_datetime
-            appointment.status = AppointmentStatusEnum(status)
-            appointment.notes = notes if notes else None
-            db.session.commit()
-
-            flash(
-                f"Appointment updated successfully for "
-                f"{appointment.patient.first_name} {appointment.patient.last_name}!",
-                "success",
-            )
-            return redirect(url_for("view_appointments"))
-
-        # GET request - show edit form
-        patients = (
-            Patient.query.filter_by(doctor_id=doctor_id)
-            .order_by(Patient.last_name)
-            .all()
-        )
-        return render_template(
-            "edit_appointment.html",
-            appointment=appointment,
-            patients=patients,
-            datetime=datetime,
-        )
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Error editing appointment: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
-
-
-@app.route("/delete_appointment/<int:appointment_id>", methods=["POST"])
-def delete_appointment(appointment_id):
-    """Delete a specific appointment"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get the appointment and ensure it belongs to this doctor
-        appointment = (
-            Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id)
-            .join(Patient)
-            .first()
-        )
-
-        if not appointment:
-            flash("Appointment not found or access denied.", "error")
-            return redirect(url_for("dashboard"))
-
-        # Store patient name for flash message
-        patient_name = (
-            f"{appointment.patient.first_name} {appointment.patient.last_name}"
-        )
-
-        # Delete the appointment
-        db.session.delete(appointment)
-        db.session.commit()
-
-        flash(
-            f"Appointment for {patient_name} has been deleted successfully.", "success"
-        )
-
-        # Redirect based on source
-        source = request.form.get("source", "")
-        if source == "dashboard":
-            return redirect(url_for("dashboard"))
-        else:
-            return redirect(url_for("view_appointments"))
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f"Error deleting appointment: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
-
-
-@app.route("/about_us")
-def about_us():
-    """Display about us page"""
-    if not session.get("logged_in"):
-        flash("Please log in to access this page.", "error")
-        return redirect(url_for("login"))
-
-    doctor_id = session.get("doctor_id")
-
-    try:
-        # Get system statistics
-        total_patients = Patient.query.filter_by(doctor_id=doctor_id).count()
-        total_appointments = Appointment.query.filter_by(doctor_id=doctor_id).count()
-        total_lab_results = (
-            db.session.query(LaboratoryResult)
-            .join(Patient)
-            .filter(Patient.doctor_id == doctor_id)
-            .count()
-        )
-        active_doctors = 1  # Current doctor
-
-        system_stats = {
-            "total_patients": total_patients,
-            "total_appointments": total_appointments,
-            "total_lab_results": total_lab_results,
-            "active_doctors": active_doctors,
-        }
-
-        return render_template(
-            "about_us.html", system_stats=system_stats, datetime=datetime
-        )
-
-    except Exception as e:
-        flash(f"Error loading about page: {str(e)}", "error")
-        return redirect(url_for("dashboard"))
-
-
-@app.route("/logout")
-def logout():
-    # Clear session
-    session.clear()
-    flash("You have been logged out successfully.", "info")
-    return redirect(url_for("login"))
-
-
-@app.route("/doctor_profile")
-def doctor_profile():
-    if "logged_in" not in session:
-        return redirect(url_for("login"))
-
-    doctor = Doctor.query.get(session["doctor_id"])
-    if not doctor:
-        flash("Doctor profile not found.", "error")
-        return redirect(url_for("dashboard"))
-
-    return render_template("doctor_profile.html", doctor=doctor)
-
-
-@app.route("/edit_doctor_profile", methods=["GET", "POST"])
-def edit_doctor_profile():
-    if "logged_in" not in session:
-        return redirect(url_for("login"))
-
-    doctor = Doctor.query.get(session["doctor_id"])
-    if not doctor:
-        flash("Doctor profile not found.", "error")
-        return redirect(url_for("dashboard"))
-
-    if request.method == "POST":
-        try:
-            # Update doctor information
-            doctor.first_name = request.form["first_name"]
-            doctor.last_name = request.form["last_name"]
-            doctor.phone_number = request.form["phone_number"]
-            doctor.email = request.form["email"]
-
-            # Update session doctor name if last name changed
-            session["doctor_name"] = f"Dr. {doctor.last_name}"
-
-            db.session.commit()
-            flash("Profile updated successfully!", "success")
-            return redirect(url_for("doctor_profile"))
-
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error updating profile: {str(e)}", "error")
-            return render_template("edit_doctor_profile.html", doctor=doctor)
-
-    return render_template("edit_doctor_profile.html", doctor=doctor)
-
-
-@app.route("/register.html")
-def register():
-    return render_template("register.html")
-
-
-@app.route("/register_success")
-def register_success():
-    return render_template("register_success.html")
-
-
-@app.route("/confirm/<token>")
-def confirm_email(token):
-    try:
-        # Token expires in 24 hours (86400 seconds)
-        doctor_id = load_token(token, max_age_seconds=86400, expected_purpose="confirm")
-
-        doctor = Doctor.query.get(doctor_id)
-        if not doctor:
-            flash("Invalid confirmation link.", "error")
-            return redirect(url_for("login"))
-
-        if doctor.email_confirmed:
-            flash("Email already confirmed. Please log in.", "info")
-            return redirect(url_for("login"))
-
-        # Confirm the email
-        doctor.email_confirmed = True
-        from datetime import datetime
-
-        doctor.email_confirmed_at = datetime.utcnow()
-        db.session.commit()
-
-        flash("Email confirmed successfully! You can now log in.", "success")
-        return redirect(url_for("login"))
-
-    except Exception:
-        flash("Invalid or expired confirmation link.", "error")
-        return redirect(url_for("login"))
-
-
-@app.route("/register", methods=["POST"])
-def register_doctor():
-    try:
-        # Get form data
-        first_name = request.form.get("firstName", "").strip()
-        last_name = request.form.get("lastName", "").strip()
-        username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "").strip()
-        phone_number = request.form.get("phone", "").strip()
-        specialty_name = request.form.get("speciality", "").strip()
-
-        # Validation
-        errors = []
-
-        # Required fields
-        if not last_name:
-            errors.append("Last name is required")
-        if not username:
-            errors.append("Username is required")
-        if not email:
-            errors.append("Email is required")
-        if not password:
-            errors.append("Password is required")
-
-        # Email format validation
-        if email and not validate_email(email):
-            errors.append("Invalid email format")
-
-        # Password strength validation
-        if password:
-            is_valid, msg = validate_password(password)
-            if not is_valid:
-                errors.append(msg)
-
-        # Username validation
-        if username and (len(username) < 3 or len(username) > 20):
-            errors.append("Username must be between 3 and 20 characters")
-
-        # Check for existing username or email
-        if username or email:
-            existing_doctor = Doctor.query.filter(
-                (Doctor.username == username) | (Doctor.email == email)
-            ).first()
-
-            if existing_doctor:
-                if existing_doctor.username == username:
-                    errors.append("Username already exists")
-                if existing_doctor.email == email:
-                    errors.append("Email already exists")
-
-        # If there are validation errors, return them
-        if errors:
-            for error in errors:
-                flash(error, "error")
-            return redirect(url_for("register"))
-
-        # Hash the password
-        hashed_password = generate_password_hash(password)
-
-        # Create new doctor
-        new_doctor = Doctor(
-            first_name=first_name if first_name else None,
-            last_name=last_name,
-            username=username,
-            email=email,
-            password=hashed_password,
-            phone_number=phone_number if phone_number else None,
-            email_confirmed=False,  # Email not confirmed yet
-        )
-
-        # Handle specialty if provided
-        if specialty_name:
-            specialty = Specialty.query.filter_by(name=specialty_name).first()
-            if not specialty:
-                specialty = Specialty(name=specialty_name)
-                db.session.add(specialty)
-
-            new_doctor.specialties.append(specialty)
-
-        # Add to database
-        db.session.add(new_doctor)
-        db.session.commit()
-
-        # Send confirmation email
-        email_sent = send_confirmation_email(new_doctor)
-
-        if email_sent:
-            flash(
-                (
-                    f"Registration successful! A confirmation email has been sent "
-                    f"to {email}. Please check your email to activate your account."
-                ),
-                "success",
-            )
-        else:
-            flash(
-                (
-                    "Registration successful! However, we couldn't "
-                    "send the confirmation email. Please contact support."
-                ),
-                "warning",
-            )
-
-        return redirect(url_for("register_success"))
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f"An error occurred during registration: {str(e)}", "error")
-        return redirect(url_for("register"))
-
-
-@app.route("/add_doctor", methods=["GET", "POST"])
-def add_doctor():
-    if request.method == "POST":
-        username = request.form["username"]
-        email = request.form["email"]
-        password = request.form["password"]
-        hashed_password = generate_password_hash(
-            password, method="sha256"
-        )  # Hash the password
-        new_doctor = Doctor(username=username, email=email, password=hashed_password)
-        db.session.add(new_doctor)
-        db.session.commit()
-        return "Doctor Added!"
-    return """
-        <form method="POST">
-            Username: <input type="text" name="username"><br>
-            Email: <input type="text" name="email"><br>
-            Password: <input type="password" name="password"><br>
-            <input type="submit" value="Add Doctor">
-        </form>
-    """
-
-
-# --- Patient Details Route ---
 
 
 @app.route("/patient/<int:patient_id>")
@@ -1780,6 +876,529 @@ def delete_patient(patient_id):
     return redirect(url_for("view_all_patients"))
 
 
+# Appointment routes
+@app.route("/view_appointments")
+def view_appointments():
+    """Display all appointments"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    try:
+        # Get all appointments for this doctor
+        appointments = (
+            Appointment.query.filter_by(doctor_id=doctor_id)
+            .join(Patient)
+            .order_by(Appointment.date.desc())
+            .all()
+        )
+
+        # Get statistics
+        total_appointments = len(appointments)
+        upcoming_appointments = len(
+            [a for a in appointments if a.date > datetime.now()]
+        )
+        completed_appointments = len(
+            [a for a in appointments if a.status == AppointmentStatusEnum.COMPLETED]
+        )
+
+        # Get appointments by status
+        scheduled = len(
+            [a for a in appointments if a.status == AppointmentStatusEnum.SCHEDULED]
+        )
+        cancelled = len(
+            [a for a in appointments if a.status == AppointmentStatusEnum.CANCELLED]
+        )
+
+        stats = {
+            "total_appointments": total_appointments,
+            "upcoming_appointments": upcoming_appointments,
+            "completed_appointments": completed_appointments,
+            "scheduled_appointments": scheduled,
+            "cancelled_appointments": cancelled,
+        }
+
+        return render_template(
+            "appointments.html",
+            appointments=appointments,
+            stats=stats,
+            datetime=datetime,
+        )
+
+    except Exception as e:
+        flash(f"Error loading appointments: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
+@app.route("/schedule_appointment", methods=["GET", "POST"])
+def schedule_appointment():
+    # Check if user is logged in
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    if request.method == "POST":
+        try:
+            # Get form data
+            patient_id = request.form.get("patient_id", "").strip()
+            appointment_date = request.form.get("appointment_date", "").strip()
+            appointment_time = request.form.get("appointment_time", "").strip()
+            appointment_type = request.form.get("appointment_type", "").strip().lower().replace("-", "_")
+            notes = request.form.get("notes", "").strip()
+
+            # Validation
+            errors = []
+            if not patient_id:
+                errors.append("Please select a patient")
+            if not appointment_date:
+                errors.append("Appointment date is required")
+            if not appointment_time:
+                errors.append("Appointment time is required")
+
+            # Check if patient belongs to this doctor
+            if patient_id:
+                patient = Patient.query.filter_by(
+                    id=patient_id, doctor_id=doctor_id
+                ).first()
+                if not patient:
+                    errors.append("Invalid patient selection")
+
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                patients = (
+                    Patient.query.filter_by(doctor_id=doctor_id)
+                    .order_by(Patient.last_name)
+                    .all()
+                )
+                return render_template("schedule_appointment.html", patients=patients)
+
+            appointment_datetime = datetime.strptime(
+                f"{appointment_date} {appointment_time}", "%Y-%m-%d %H:%M"
+            )
+
+            # Check for existing appointment at same time
+            existing_appointment = Appointment.query.filter_by(
+                doctor_id=doctor_id, date=appointment_datetime
+            ).first()
+
+            if existing_appointment:
+                flash("You already have an appointment at this date and time.", "error")
+                patients = (
+                    Patient.query.filter_by(doctor_id=doctor_id)
+                    .order_by(Patient.last_name)
+                    .all()
+                )
+                return render_template("schedule_appointment.html", patients=patients)
+
+            # Create new appointment
+            new_appointment = Appointment(
+                patient_id=int(patient_id),
+                doctor_id=doctor_id,
+                date=appointment_datetime,
+                status=AppointmentStatusEnum.SCHEDULED,
+                appointment_type=AppointmentTypeEnum(appointment_type) if appointment_type else None,
+                notes=notes if notes else None,
+            )
+
+            db.session.add(new_appointment)
+            db.session.commit()
+
+            patient = Patient.query.get(patient_id)
+            flash(
+                f"Appointment scheduled for {patient.first_name} {patient.last_name}!",
+                "success",
+            )
+            flash(
+                f'Date and time: {appointment_datetime.strftime("%Y-%m-%d at %H:%M")}',
+                "info",
+            )
+            return redirect(url_for("dashboard"))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error scheduling appointment: {str(e)}", "error")
+            patients = (
+                Patient.query.filter_by(doctor_id=doctor_id)
+                .order_by(Patient.last_name)
+                .all()
+            )
+            return render_template("schedule_appointment.html", patients=patients)
+
+    # Get patients for dropdown
+    patients = (
+        Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
+    )
+    # Get pre-selected patient ID from URL parameter
+    selected_patient_id = request.args.get("patient_id")
+    return render_template(
+        "schedule_appointment.html",
+        patients=patients,
+        selected_patient_id=selected_patient_id,
+    )
+
+
+@app.route("/view_appointment/<int:appointment_id>")
+def view_appointment(appointment_id):
+    """View a specific appointment"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    try:
+        # Get the appointment and ensure it belongs to this doctor
+        appointment = (
+            Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id)
+            .join(Patient)
+            .first()
+        )
+
+        if not appointment:
+            flash("Appointment not found or access denied.", "error")
+            return redirect(url_for("dashboard"))
+
+        return render_template(
+            "view_appointment.html", appointment=appointment, datetime=datetime
+        )
+
+    except Exception as e:
+        flash(f"Error loading appointment: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
+@app.route("/edit_appointment/<int:appointment_id>", methods=["GET", "POST"])
+def edit_appointment(appointment_id):
+    """Edit a specific appointment"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    try:
+        # Get the appointment and ensure it belongs to this doctor
+        appointment = (
+            Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id)
+            .join(Patient)
+            .first()
+        )
+
+        if not appointment:
+            flash("Appointment not found or access denied.", "error")
+            return redirect(url_for("dashboard"))
+
+        if request.method == "POST":
+            # Get form data
+            appointment_date = request.form.get("appointment_date", "").strip()
+            appointment_time = request.form.get("appointment_time", "").strip()
+            status = request.form.get("status", "").strip().lower().replace("-", "_")
+            appointment_type = request.form.get("appointment_type", "").strip().lower().replace("-", "_")
+            notes = request.form.get("notes", "").strip()
+
+            # Validation
+            errors = []
+            if not appointment_date:
+                errors.append("Appointment date is required")
+            if not appointment_time:
+                errors.append("Appointment time is required")
+            if not status:
+                errors.append("Status is required")
+
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                patients = (
+                    Patient.query.filter_by(doctor_id=doctor_id)
+                    .order_by(Patient.last_name)
+                    .all()
+                )
+                return render_template(
+                    "edit_appointment.html",
+                    appointment=appointment,
+                    patients=patients,
+                    datetime=datetime,
+                )
+
+            # Create new appointment datetime
+            appointment_datetime = datetime.strptime(
+                f"{appointment_date} {appointment_time}", "%Y-%m-%d %H:%M"
+            )
+
+            # Check for existing appointment at same time (excluding current appointment)
+            existing_appointment = (
+                Appointment.query.filter_by(
+                    doctor_id=doctor_id, date=appointment_datetime
+                )
+                .filter(Appointment.id != appointment_id)
+                .first()
+            )
+
+            if existing_appointment:
+                flash(
+                    "You already have another appointment at this date and time.",
+                    "error",
+                )
+                patients = (
+                    Patient.query.filter_by(doctor_id=doctor_id)
+                    .order_by(Patient.last_name)
+                    .all()
+                )
+                return render_template(
+                    "edit_appointment.html",
+                    appointment=appointment,
+                    patients=patients,
+                    datetime=datetime,
+                )
+
+            # Update appointment
+            appointment.date = appointment_datetime
+            appointment.status = AppointmentStatusEnum(status) if status else appointment.status
+            appointment.appointment_type = (
+                AppointmentTypeEnum(appointment_type) if appointment_type else appointment.appointment_type
+            )
+            appointment.notes = notes if notes else None
+            db.session.commit()
+
+            flash(
+                f"Appointment updated successfully for "
+                f"{appointment.patient.first_name} {appointment.patient.last_name}!",
+                "success",
+            )
+            return redirect(url_for("view_appointments"))
+
+        # GET request - show edit form
+        patients = (
+            Patient.query.filter_by(doctor_id=doctor_id)
+            .order_by(Patient.last_name)
+            .all()
+        )
+        return render_template(
+            "edit_appointment.html",
+            appointment=appointment,
+            patients=patients,
+            datetime=datetime,
+        )
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error editing appointment: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
+@app.route("/delete_appointment/<int:appointment_id>", methods=["POST"])
+def delete_appointment(appointment_id):
+    """Delete a specific appointment"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    try:
+        # Get the appointment and ensure it belongs to this doctor
+        appointment = (
+            Appointment.query.filter_by(id=appointment_id, doctor_id=doctor_id)
+            .join(Patient)
+            .first()
+        )
+
+        if not appointment:
+            flash("Appointment not found or access denied.", "error")
+            return redirect(url_for("dashboard"))
+
+        # Store patient name for flash message
+        patient_name = (
+            f"{appointment.patient.first_name} {appointment.patient.last_name}"
+        )
+
+        # Delete the appointment
+        db.session.delete(appointment)
+        db.session.commit()
+
+        flash(
+            f"Appointment for {patient_name} has been deleted successfully.", "success"
+        )
+
+        # Redirect based on source
+        source = request.form.get("source", "")
+        if source == "dashboard":
+            return redirect(url_for("dashboard"))
+        else:
+            return redirect(url_for("view_appointments"))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting appointment: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
+#  Lab Routes
+@app.route("/view_lab_results")
+def view_lab_results():
+    """Display all lab results"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    try:
+        # Get all lab results for patients of this doctor
+        lab_results_query = (
+            db.session.query(LaboratoryResult, Patient)
+            .join(Patient, LaboratoryResult.patient_id == Patient.id)
+            .filter(Patient.doctor_id == doctor_id)
+            .order_by(LaboratoryResult.date.desc())
+        )
+
+        lab_results = lab_results_query.all()
+
+        # Get statistics
+        total_results = len(lab_results)
+        recent_results = len(
+            [lr for lr, p in lab_results if (datetime.now() - lr.date).days <= 7]
+        )
+
+        # Get unique test types
+        test_types = set([lr.test_name for lr, p in lab_results])
+
+        stats = {
+            "total_results": total_results,
+            "recent_results": recent_results,
+            "test_types_count": len(test_types),
+            "test_types": sorted(list(test_types)),
+        }
+
+        return render_template(
+            "lab_results.html", lab_results=lab_results, stats=stats, datetime=datetime
+        )
+
+    except Exception as e:
+        print(f"Debug - Lab results error: {str(e)}")  # Add debug print
+        flash(f"Error loading lab results: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
+@app.route("/add_lab_result", methods=["GET", "POST"])
+def add_lab_result():
+    # Check if user is logged in
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    if request.method == "POST":
+        try:
+            # Get form data
+            patient_id = request.form.get("patient_id", "").strip()
+            test_name = request.form.get("test_name", "").strip()
+            test_date = request.form.get("test_date", "").strip()
+            result = request.form.get("result", "").strip()
+            unit = request.form.get("unit", "").strip()
+            reference_range = request.form.get("reference_range", "").strip()
+            status = request.form.get("status", "").strip()
+            notes = request.form.get("notes", "").strip()
+
+            # Validation
+            errors = []
+            if not patient_id:
+                errors.append("Please select a patient")
+            if not test_name:
+                errors.append("Test name is required")
+            if not result:
+                errors.append("Result is required")
+            if not test_date:
+                errors.append("Test date is required")
+
+            # Check if patient belongs to this doctor
+            if patient_id:
+                patient = Patient.query.filter_by(
+                    id=patient_id, doctor_id=doctor_id
+                ).first()
+                if not patient:
+                    errors.append("Invalid patient selection")
+
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                patients = (
+                    Patient.query.filter_by(doctor_id=doctor_id)
+                    .order_by(Patient.last_name)
+                    .all()
+                )
+                return render_template("add_lab_result.html", patients=patients)
+
+            # Create test datetime
+            try:
+                # Try datetime-local format first (YYYY-MM-DDTHH:MM)
+                test_datetime = datetime.strptime(test_date, "%Y-%m-%dT%H:%M")
+            except ValueError:
+                try:
+                    # Try date-only format (YYYY-MM-DD)
+                    test_datetime = datetime.strptime(test_date, "%Y-%m-%d")
+                except ValueError:
+                    errors.append("Invalid date format")
+                    for error in errors:
+                        flash(error, "error")
+                    patients = (
+                        Patient.query.filter_by(doctor_id=doctor_id)
+                        .order_by(Patient.last_name)
+                        .all()
+                    )
+                    return render_template("add_lab_result.html", patients=patients)
+
+            # Create new lab result
+            new_lab_result = LaboratoryResult(
+                patient_id=int(patient_id),
+                test_name=test_name,
+                date=test_datetime,
+                result=result,
+                unit=unit if unit else None,
+                reference_range=reference_range if reference_range else None,
+                status=LabResultStatusEnum(status) if status else None,
+                notes=notes if notes else None,
+            )
+
+            db.session.add(new_lab_result)
+            db.session.commit()
+
+            patient = Patient.query.get(patient_id)
+            flash(
+                f"Lab result added for {patient.first_name} {patient.last_name}: {test_name}",
+                "success",
+            )
+            return redirect(url_for("dashboard"))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding lab result: {str(e)}", "error")
+            patients = (
+                Patient.query.filter_by(doctor_id=doctor_id)
+                .order_by(Patient.last_name)
+                .all()
+            )
+            return render_template("add_lab_result.html", patients=patients)
+
+    # Get patients for dropdown
+    patients = (
+        Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
+    )
+    # Get pre-selected patient ID from URL parameter
+    selected_patient_id = request.args.get("patient_id")
+    return render_template(
+        "add_lab_result.html",
+        patients=patients,
+        selected_patient_id=selected_patient_id,
+    )
+
+
 @app.route("/edit_lab_result/<int:lab_result_id>", methods=["GET", "POST"])
 def edit_lab_result(lab_result_id):
     """Edit lab result information"""
@@ -1806,8 +1425,12 @@ def edit_lab_result(lab_result_id):
         try:
             # Get form data
             test_name = request.form.get("test_name", "").strip()
-            result = request.form.get("result", "").strip()
             date_str = request.form.get("date", "").strip()
+            result = request.form.get("result", "").strip()
+            unit = request.form.get("unit", "").strip()
+            reference_range = request.form.get("reference_range", "").strip()
+            status = request.form.get("status", "").strip()
+            notes = request.form.get("notes", "").strip()
 
             # Validation
             errors = []
@@ -1834,6 +1457,10 @@ def edit_lab_result(lab_result_id):
             lab_result.test_name = test_name
             lab_result.result = result
             lab_result.date = test_date
+            lab_result.unit = unit
+            lab_result.reference_range = reference_range
+            lab_result.status = LabResultStatusEnum(status) if status else None
+            lab_result.notes = notes if notes else None
 
             db.session.commit()
             patient_name = (
@@ -1890,9 +1517,407 @@ def delete_lab_result(lab_result_id):
     return redirect(url_for("view_lab_results"))
 
 
-# ===== RADIOLOGY IMAGING ROUTES =====
+# Medical History Routes
+@app.route("/add_medical_history", methods=["GET", "POST"])
+def add_medical_history():
+    """Add medical history entry for a patient"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    if request.method == "POST":
+        try:
+            # Get form data
+            patient_id = request.form.get("patient_id", "").strip()
+            allergy_id = request.form.get("allergy_id", "").strip()
+            description = request.form.get("description", "").strip()
+            history_date = request.form.get("history_date", "").strip()
+
+            # Validation
+            errors = []
+            if not patient_id:
+                errors.append("Please select a patient")
+            if not allergy_id:
+                errors.append("Please select an allergy")
+            if not description:
+                errors.append("Description is required")
+            if not history_date:
+                errors.append("Date is required")
+
+            # Check if patient belongs to this doctor
+            if patient_id:
+                patient = Patient.query.filter_by(
+                    id=patient_id, doctor_id=doctor_id
+                ).first()
+                if not patient:
+                    errors.append("Invalid patient selection")
+
+            if errors:
+                for error in errors:
+                    flash(error, "error")
+                patients = (
+                    Patient.query.filter_by(doctor_id=doctor_id)
+                    .order_by(Patient.last_name)
+                    .all()
+                )
+                allergies = Allergy.query.order_by(Allergy.name).all()
+                return render_template(
+                    "add_medical_history.html", patients=patients, allergies=allergies
+                )
+
+            # Parse date
+
+            history_datetime = datetime.strptime(history_date, "%Y-%m-%d")
+
+            # Create new medical history entry
+            new_history = MedicalHistory(
+                patient_id=int(patient_id),
+                allergy_id=int(allergy_id),
+                description=description,
+                date=history_datetime,
+            )
+
+            db.session.add(new_history)
+            db.session.commit()
+
+            patient = Patient.query.get(patient_id)
+            allergy = Allergy.query.get(allergy_id)
+            flash(
+                f"Medical history added for {patient.first_name} {patient.last_name}!",
+                "success",
+            )
+            flash(f"Allergy: {allergy.name}", "info")
+            return redirect(url_for("view_all_patients"))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding medical history: {str(e)}", "error")
+            patients = (
+                Patient.query.filter_by(doctor_id=doctor_id)
+                .order_by(Patient.last_name)
+                .all()
+            )
+            allergies = Allergy.query.order_by(Allergy.name).all()
+            return render_template(
+                "add_medical_history.html", patients=patients, allergies=allergies
+            )
+
+    # Get patients and allergies for dropdowns
+    patients = (
+        Patient.query.filter_by(doctor_id=doctor_id).order_by(Patient.last_name).all()
+    )
+
+    allergies = Allergy.query.order_by(Allergy.name).all()
+
+    # If no allergies exist, create common ones
+    if not allergies:
+        try:
+            common_allergies = [
+                (
+                    "Penicillin",
+                    "Antibiotic allergy - can cause rash, hives, or anaphylaxis",
+                ),
+                (
+                    "Peanuts",
+                    "Food allergy - can cause severe reactions, requires avoidance",
+                ),
+                ("Shellfish", "Food allergy - can cause mild to severe reactions"),
+                ("Dust Mites", "Environmental allergy - causes respiratory symptoms"),
+                ("Pollen", "Seasonal allergy - causes hay fever symptoms"),
+                ("Latex", "Contact allergy - causes skin and systemic reactions"),
+                ("Sulfa Drugs", "Medication allergy - can cause skin rashes and fever"),
+                (
+                    "Aspirin",
+                    "Medication allergy - causes respiratory or skin reactions",
+                ),
+                ("Eggs", "Food allergy - common in children, various symptoms"),
+                ("Dairy/Milk", "Food allergy - causes digestive and skin reactions"),
+                ("Other", "For allergies not listed above - specify in description"),
+            ]
+
+            for name, description in common_allergies:
+                allergy = Allergy(name=name, description=description)
+                db.session.add(allergy)
+
+            db.session.commit()
+            allergies = Allergy.query.order_by(Allergy.name).all()
+            flash("Common allergies have been added to the system.", "info")
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error creating allergies: {str(e)}", "error")
+    # Get pre-selected patient ID from URL parameter
+    selected_patient_id = request.args.get("patient_id")
+    return render_template(
+        "add_medical_history.html",
+        patients=patients,
+        allergies=allergies,
+        selected_patient_id=selected_patient_id,
+    )
 
 
+@app.route("/about_us")
+def about_us():
+    """Display about us page"""
+    if not session.get("logged_in"):
+        flash("Please log in to access this page.", "error")
+        return redirect(url_for("login"))
+
+    doctor_id = session.get("doctor_id")
+
+    try:
+        # Get system statistics
+        total_patients = Patient.query.filter_by(doctor_id=doctor_id).count()
+        total_appointments = Appointment.query.filter_by(doctor_id=doctor_id).count()
+        total_lab_results = (
+            db.session.query(LaboratoryResult)
+            .join(Patient)
+            .filter(Patient.doctor_id == doctor_id)
+            .count()
+        )
+        active_doctors = 1  # Current doctor
+
+        system_stats = {
+            "total_patients": total_patients,
+            "total_appointments": total_appointments,
+            "total_lab_results": total_lab_results,
+            "active_doctors": active_doctors,
+        }
+
+        return render_template(
+            "about_us.html", system_stats=system_stats, datetime=datetime
+        )
+
+    except Exception as e:
+        flash(f"Error loading about page: {str(e)}", "error")
+        return redirect(url_for("dashboard"))
+
+
+@app.route("/doctor_profile")
+def doctor_profile():
+    if "logged_in" not in session:
+        return redirect(url_for("login"))
+
+    doctor = Doctor.query.get(session["doctor_id"])
+    if not doctor:
+        flash("Doctor profile not found.", "error")
+        return redirect(url_for("dashboard"))
+
+    return render_template("doctor_profile.html", doctor=doctor)
+
+
+@app.route("/add_doctor", methods=["GET", "POST"])
+def add_doctor():
+    if request.method == "POST":
+        username = request.form["username"]
+        email = request.form["email"]
+        password = request.form["password"]
+        hashed_password = generate_password_hash(
+            password, method="sha256"
+        )  # Hash the password
+        new_doctor = Doctor(username=username, email=email, password=hashed_password)
+        db.session.add(new_doctor)
+        db.session.commit()
+        return "Doctor Added!"
+    return """
+        <form method="POST">
+            Username: <input type="text" name="username"><br>
+            Email: <input type="text" name="email"><br>
+            Password: <input type="password" name="password"><br>
+            <input type="submit" value="Add Doctor">
+        </form>
+    """
+
+
+@app.route("/edit_doctor_profile", methods=["GET", "POST"])
+def edit_doctor_profile():
+    if "logged_in" not in session:
+        return redirect(url_for("login"))
+
+    doctor = Doctor.query.get(session["doctor_id"])
+    if not doctor:
+        flash("Doctor profile not found.", "error")
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        try:
+            # Update doctor information
+            doctor.first_name = request.form["first_name"]
+            doctor.last_name = request.form["last_name"]
+            doctor.phone_number = request.form["phone_number"]
+            doctor.email = request.form["email"]
+
+            # Update session doctor name if last name changed
+            session["doctor_name"] = f"Dr. {doctor.last_name}"
+
+            db.session.commit()
+            flash("Profile updated successfully!", "success")
+            return redirect(url_for("doctor_profile"))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating profile: {str(e)}", "error")
+            return render_template("edit_doctor_profile.html", doctor=doctor)
+
+    return render_template("edit_doctor_profile.html", doctor=doctor)
+
+
+@app.route("/register.html")
+def register():
+    return render_template("register.html")
+
+
+@app.route("/register_success")
+def register_success():
+    return render_template("register_success.html")
+
+
+@app.route("/confirm/<token>")
+def confirm_email(token):
+    try:
+        # Token expires in 24 hours (86400 seconds)
+        doctor_id = load_token(token, max_age_seconds=86400, expected_purpose="confirm")
+
+        doctor = Doctor.query.get(doctor_id)
+        if not doctor:
+            flash("Invalid confirmation link.", "error")
+            return redirect(url_for("login"))
+
+        if doctor.email_confirmed:
+            flash("Email already confirmed. Please log in.", "info")
+            return redirect(url_for("login"))
+
+        # Confirm the email
+        doctor.email_confirmed = True
+        from datetime import datetime
+
+        doctor.email_confirmed_at = datetime.utcnow()
+        db.session.commit()
+
+        flash("Email confirmed successfully! You can now log in.", "success")
+        return redirect(url_for("login"))
+
+    except Exception:
+        flash("Invalid or expired confirmation link.", "error")
+        return redirect(url_for("login"))
+
+
+# TODO: Check if needed
+@app.route("/register", methods=["POST"])
+def register_doctor():
+    try:
+        # Get form data
+        first_name = request.form.get("firstName", "").strip()
+        last_name = request.form.get("lastName", "").strip()
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        password = request.form.get("password", "").strip()
+        phone_number = request.form.get("phone", "").strip()
+        specialty_name = request.form.get("speciality", "").strip()
+
+        # Validation
+        errors = []
+
+        # Required fields
+        if not last_name:
+            errors.append("Last name is required")
+        if not username:
+            errors.append("Username is required")
+        if not email:
+            errors.append("Email is required")
+        if not password:
+            errors.append("Password is required")
+
+        # Email format validation
+        if email and not validate_email(email):
+            errors.append("Invalid email format")
+
+        # Password strength validation
+        if password:
+            is_valid, msg = validate_password(password)
+            if not is_valid:
+                errors.append(msg)
+
+        # Username validation
+        if username and (len(username) < 3 or len(username) > 20):
+            errors.append("Username must be between 3 and 20 characters")
+
+        # Check for existing username or email
+        if username or email:
+            existing_doctor = Doctor.query.filter(
+                (Doctor.username == username) | (Doctor.email == email)
+            ).first()
+
+            if existing_doctor:
+                if existing_doctor.username == username:
+                    errors.append("Username already exists")
+                if existing_doctor.email == email:
+                    errors.append("Email already exists")
+
+        # If there are validation errors, return them
+        if errors:
+            for error in errors:
+                flash(error, "error")
+            return redirect(url_for("register"))
+
+        # Hash the password
+        hashed_password = generate_password_hash(password)
+
+        # Create new doctor
+        new_doctor = Doctor(
+            first_name=first_name if first_name else None,
+            last_name=last_name,
+            username=username,
+            email=email,
+            password=hashed_password,
+            phone_number=phone_number if phone_number else None,
+            email_confirmed=False,  # Email not confirmed yet
+        )
+
+        # Handle specialty if provided
+        if specialty_name:
+            specialty = Specialty.query.filter_by(name=specialty_name).first()
+            if not specialty:
+                specialty = Specialty(name=specialty_name)
+                db.session.add(specialty)
+
+            new_doctor.specialties.append(specialty)
+
+        # Add to database
+        db.session.add(new_doctor)
+        db.session.commit()
+
+        # Send confirmation email
+        email_sent = send_confirmation_email(new_doctor)
+
+        if email_sent:
+            flash(
+                (
+                    f"Registration successful! A confirmation email has been sent "
+                    f"to {email}. Please check your email to activate your account."
+                ),
+                "success",
+            )
+        else:
+            flash(
+                (
+                    "Registration successful! However, we couldn't "
+                    "send the confirmation email. Please contact support."
+                ),
+                "warning",
+            )
+
+        return redirect(url_for("register_success"))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred during registration: {str(e)}", "error")
+        return redirect(url_for("register"))
+
+
+#  RADIOLOGY IMAGING ROUTES
 @app.route("/add_radiology_imaging", methods=["GET", "POST"])
 def add_radiology_imaging():
     """Add new radiology imaging record"""

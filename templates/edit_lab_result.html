@@ -85,7 +85,7 @@
         color: #dc3545;
     }
     
-    .form-group input,
+    .form-group input, select,
     .form-group textarea {
         padding: 12px 15px;
         border: 2px solid #e1e5e9;
@@ -228,16 +228,52 @@
                     </div>
                     <div class="form-group">
                         <label for="date">Test Date <span class="required">*</span></label>
-                        <input type="date" id="date" name="date" value="{{ lab_result.date.strftime('%Y-%m-%d') }}" required>
+                        <input type="datetime-local" id="date" name="date" value="{{ lab_result.date.strftime('%Y-%m-%dT%H:%M') }}" required>
                     </div>
                 </div>
-                
-                <div class="form-group full-width">
-                    <label for="result">Test Result <span class="required">*</span></label>
-                    <textarea id="result" name="result" required placeholder="Enter the test result, values, reference ranges, and any relevant notes">{{ lab_result.result }}</textarea>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="result">Test Result <span class="required">*</span></label>
+                        <input type="text" id="result" name="result" required
+                        placeholder="Enter the test result, e.g., 12.5, Normal, Positive"
+                        value="{{ lab_result.result }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="unit">Unit <span class="required">*</span></label>
+                        <input type="text" id="unit" name="unit" required
+                        placeholder="Enter the unit, e.g., mg/dL, %"
+                        value="{{ lab_result.unit }}">
+                    </div>
                 </div>
-                
-                <div class="form-actions">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reference_range">Reference Range <span class="required">*</span></label>
+                        <input type="text" id="reference_range" name="reference_range" required
+                        placeholder="Enter the reference range, e.g., 4.0-6.0, Normal"
+                        value="{{ lab_result.reference_range }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <select id="status" name="status">
+                            <option value="">Select status</option>
+                            <option value="Normal" {{ 'selected' if lab_result.status == 'Normal' }}>Normal</option>
+                            <option value="Abnormal" {{ 'selected' if lab_result.status == 'Abnormal' }}>Abnormal</option>
+                            <option value="High" {{ 'selected' if lab_result.status == 'High' }}>High</option>
+                            <option value="Low" {{ 'selected' if lab_result.status == 'Low' }}>Low</option>
+                            <option value="Critical" {{ 'selected' if lab_result.status == 'Critical' }}>Critical</option>
+                            <option value="Pending" {{ 'selected' if lab_result.status == 'Pending' }}>Pending</option>
+                        </select>
+                    </div>
+                    
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes</label>
+                    <textarea id="notes" name="notes"
+                              placeholder="Additional notes about the test results, interpretation, or follow-up recommendations">{{ lab_result.notes }}</textarea>
+                </div>
+                <div class="button-group">
                     <button type="submit" class="btn btn-success">Update Lab Result</button>
                     <a href="{{ url_for('view_lab_results') }}" class="btn btn-secondary">Cancel</a>
                 </div>

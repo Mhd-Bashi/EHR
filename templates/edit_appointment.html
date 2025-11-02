@@ -114,6 +114,19 @@
                         </div>
 
                         <div class="form-group">
+                            <label for="type">Type</label>
+                            <select class="form-control" id="type" name="type" required>
+                                <option value="">Select Type</option>
+                                <option value="consultation" {% if appointment.appointment_type.value == 'consultation' %}selected{% endif %}>Consultation</option>
+                                <option value="follow_up" {% if appointment.appointment_type.value == 'follow_up' %}selected{% endif %}>Follow-Up</option>
+                                <option value="emergency" {% if appointment.appointment_type.value == 'emergency' %}selected{% endif %}>Emergency</option>
+                                <option value="check_up" {% if appointment.appointment_type.value == 'check_up' %}selected{% endif %}>Check-Up</option>
+                                <option value="surgery" {% if appointment.appointment_type.value == 'surgery' %}selected{% endif %}>Surgery</option>
+                                <option value="procedure" {% if appointment.appointment_type.value == 'procedure' %}selected{% endif %}>Procedure</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
                             <label for="notes">Notes</label>
                             <textarea 
                                 class="form-control" 

@@ -104,10 +104,16 @@
                                             <span class="badge badge-success">{{ appointment.status.value.title() }}</span>
                                         {% elif appointment.status.value == 'cancelled' %}
                                             <span class="badge badge-danger">{{ appointment.status.value.title() }}</span>
+                                        {% elif appointment.status.value == 'no_show' %}
+                                            <span class="badge badge-dark">{{ appointment.status.value.replace('_', ' ').title() }}</span>
                                         {% else %}
                                             <span class="badge badge-secondary">{{ appointment.status.value.title() }}</span>
                                         {% endif %}
                                     </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Type:</strong></td>
+                                    <td>{{ appointment.appointment_type.value.replace('_', '-').title() }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Notes:</strong></td>
@@ -116,6 +122,10 @@
                                 <tr>
                                     <td><strong>Created:</strong></td>
                                     <td>{{ appointment.created_at.strftime('%B %d, %Y at %I:%M %p') if appointment.created_at else 'N/A' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Updated:</strong></td>
+                                    <td>{{ appointment.updated_at.strftime('%B %d, %Y at %I:%M %p') if appointment.updated_at else 'N/A' }}</td>
                                 </tr>
                             </table>
                         </div>
@@ -158,30 +168,14 @@
                                     <thead>
                                         <tr>
                                             <th>Allergy</th>
-                                            <th>Severity</th>
-                                            <th>Notes</th>
+                                            <th>Description</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {% for allergy in appointment.patient.allergies %}
                                         <tr>
-                                            <td>{{ allergy.allergen }}</td>
-                                            <td>
-                                                {% if allergy.severity %}
-                                                    {% if allergy.severity.value == 'mild' %}
-                                                        <span class="badge badge-info">{{ allergy.severity.value.title() }}</span>
-                                                    {% elif allergy.severity.value == 'moderate' %}
-                                                        <span class="badge badge-warning">{{ allergy.severity.value.title() }}</span>
-                                                    {% elif allergy.severity.value == 'severe' %}
-                                                        <span class="badge badge-danger">{{ allergy.severity.value.title() }}</span>
-                                                    {% else %}
-                                                        <span class="badge badge-secondary">{{ allergy.severity.value.title() }}</span>
-                                                    {% endif %}
-                                                {% else %}
-                                                    N/A
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ allergy.notes or 'No notes' }}</td>
+                                            <td>{{ allergy.name }}</td>
+                                            <td>{{ allergy.description or 'No description' }}</td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
@@ -197,7 +191,7 @@
                                 <a href="{{ url_for('edit_appointment', appointment_id=appointment.id) }}" class="btn btn-warning">
                                     <i class="fas fa-edit"></i> Edit Appointment
                                 </a>
-                                <a href="{{ url_for('view_appointments') }}" class="btn btn-secondary">
+                                <a href="{{ url_for('view_appointments') }}" class="btn btn-secondary" style="color: white;">
                                     <i class="fas fa-arrow-left"></i> Back to Appointments
                                 </a>
                                 <a href="{{ url_for('dashboard') }}" class="btn btn-primary">

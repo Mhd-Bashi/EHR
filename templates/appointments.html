@@ -52,6 +52,7 @@
     .stat-card.completed { border-left-color: #17a2b8; }
     .stat-card.scheduled { border-left-color: #ffc107; }
     .stat-card.cancelled { border-left-color: #dc3545; }
+    .stat-card.no_show { border-left-color: #6c757d; }
     
     .stat-card h3 {
         font-size: 2.2rem;
@@ -197,6 +198,12 @@
         color: #721c24;
         border: 1px solid #f5c6cb;
     }
+
+    .status-no_show {
+        background-color: #e2e3e5;
+        color: #383d41;
+        border: 1px solid #d6d8db;
+    }
     
     .time-indicator {
         padding: 4px 8px;
@@ -267,7 +274,31 @@
         border-color: #dc3545;
         color: white;
     }
+
+    .btn-primary {
+        /* color: #007bff; 
+        background-color: white; */
+        color: #856404;
+        border-color: #ffc107;
+    }
+
+    .btn-primary:hover {
+        /* background-color: #007bff;
+        color: white; */
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #212529;
+    }
+
+    .btn-info {
+        background-color: transparent;
+        color: #17a2b8;
+    }
     
+    .btn-info:hover {
+        background-color: #17a2b8;
+        color: white;
+    }
     @media (max-width: 768px) {
         .controls-grid {
             grid-template-columns: 1fr;
@@ -355,6 +386,8 @@
                         <th>Patient</th>
                         <th>Date & Time</th>
                         <th>Status</th>
+                        <th>Type</th>
+                        <th>Notes</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -393,11 +426,21 @@
                             </td>
                             <td>
                                 <span class="status-badge status-{{ appointment.status.value.lower() }}">
-                                    {{ appointment.status.value }}
+                                    {{ appointment.status.value.replace('_', ' ').title() }}
                                 </span>
                             </td>
                             <td>
+                                {{ appointment.appointment_type.value.replace('_', '-').title()  if appointment.appointment_type else 'N/A' }}
+                            </td>
+                            <td>
+                                {{ appointment.notes if appointment.notes else 'N/A' }}
+                            </td>
+                            <td>
                                 <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('view_appointment', appointment_id=appointment.id) }}" 
+                                    class="btn btn-sm btn-info" title="View Appointment">
+                                    <i class="fas fa-eye"></i>
+
                                     <a href="{{ url_for('edit_appointment', appointment_id=appointment.id) }}" 
                                        class="btn btn-outline-warning btn-sm" title="Edit Appointment">
                                         <i class="fas fa-edit"></i>
