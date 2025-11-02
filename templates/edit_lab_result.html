@@ -240,30 +240,30 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="unit">Unit <span class="required">*</span></label>
-                        <input type="text" id="unit" name="unit" required
+                        <label for="unit">Unit</label>
+                        <input type="text" id="unit" name="unit"
                         placeholder="Enter the unit, e.g., mg/dL, %"
-                        value="{{ lab_result.unit }}">
+                        value="{{ lab_result.unit if lab_result.unit else '' }}">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="reference_range">Reference Range <span class="required">*</span></label>
-                        <input type="text" id="reference_range" name="reference_range" required
+                        <label for="reference_range">Reference Range</label>
+                        <input type="text" id="reference_range" name="reference_range"
                         placeholder="Enter the reference range, e.g., 4.0-6.0, Normal"
-                        value="{{ lab_result.reference_range }}">
+                        value="{{ lab_result.reference_range if lab_result.reference_range else '' }}">
                     </div>
 
                     <div class="form-group">
                         <label for="status">Status</label>
                         <select id="status" name="status">
                             <option value="">Select status</option>
-                            <option value="Normal" {{ 'selected' if lab_result.status == 'Normal' }}>Normal</option>
-                            <option value="Abnormal" {{ 'selected' if lab_result.status == 'Abnormal' }}>Abnormal</option>
-                            <option value="High" {{ 'selected' if lab_result.status == 'High' }}>High</option>
-                            <option value="Low" {{ 'selected' if lab_result.status == 'Low' }}>Low</option>
-                            <option value="Critical" {{ 'selected' if lab_result.status == 'Critical' }}>Critical</option>
-                            <option value="Pending" {{ 'selected' if lab_result.status == 'Pending' }}>Pending</option>
+                            <option value="normal" {{ 'selected' if lab_result.status.value == 'normal' }}>Normal</option>
+                            <option value="abnormal" {{ 'selected' if lab_result.status.value == 'abnormal' }}>Abnormal</option>
+                            <option value="high" {{ 'selected' if lab_result.status.value == 'high' }}>High</option>
+                            <option value="low" {{ 'selected' if lab_result.status.value == 'low' }}>Low</option>
+                            <option value="critical" {{ 'selected' if lab_result.status.value == 'critical' }}>Critical</option>
+                            <option value="pending" {{ 'selected' if lab_result.status.value == 'pending' }}>Pending</option>
                         </select>
                     </div>
                     
@@ -271,7 +271,7 @@
                 <div class="form-group">
                     <label for="notes">Notes</label>
                     <textarea id="notes" name="notes"
-                              placeholder="Additional notes about the test results, interpretation, or follow-up recommendations">{{ lab_result.notes }}</textarea>
+                              placeholder="Additional notes about the test results, interpretation, or follow-up recommendations">{{ lab_result.notes if lab_result.notes else '' }}</textarea>
                 </div>
                 <div class="button-group">
                     <button type="submit" class="btn btn-success">Update Lab Result</button>

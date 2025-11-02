@@ -1351,7 +1351,7 @@ def add_lab_result():
             result = request.form.get("result", "").strip()
             unit = request.form.get("unit", "").strip()
             reference_range = request.form.get("reference_range", "").strip()
-            status = request.form.get("status", "").strip()
+            status = request.form.get("status", "").strip().lower()
             notes = request.form.get("notes", "").strip()
 
             # Validation
@@ -1469,15 +1469,15 @@ def edit_lab_result(lab_result_id):
         flash("Lab result not found or access denied.", "error")
         return redirect(url_for("view_lab_results"))
 
-    if request.method == "POST":
-        try:
+    try:
+        if request.method == "POST":
             # Get form data
             test_name = request.form.get("test_name", "").strip()
             date_str = request.form.get("date", "").strip()
             result = request.form.get("result", "").strip()
             unit = request.form.get("unit", "").strip()
             reference_range = request.form.get("reference_range", "").strip()
-            status = request.form.get("status", "").strip()
+            status = request.form.get("status", "").strip().lower()
             notes = request.form.get("notes", "").strip()
 
             # Validation
@@ -1492,7 +1492,7 @@ def edit_lab_result(lab_result_id):
             # Parse date
             if date_str:
                 try:
-                    test_date = datetime.strptime(date_str, "%Y-%m-%d")
+                    test_date = datetime.strptime(date_str, "%Y-%m-%dT%H:%M")
                 except ValueError:
                     errors.append("Invalid date format")
 
@@ -1517,9 +1517,12 @@ def edit_lab_result(lab_result_id):
             flash(f"Lab result for {patient_name} updated successfully!", "success")
             return redirect(url_for("view_lab_results"))
 
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error updating lab result: {str(e)}", "error")
+        # GET request - show edit form
+        return render_template("edit_lab_result.html", lab_result=lab_result)
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error updating lab result: {str(e)}", "error")
 
     return render_template("edit_lab_result.html", lab_result=lab_result)
 
