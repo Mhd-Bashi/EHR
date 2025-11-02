@@ -107,17 +107,17 @@
                                         {% elif appointment.status.value == 'no_show' %}
                                             <span class="badge badge-dark">{{ appointment.status.value.replace('_', ' ').title() }}</span>
                                         {% else %}
-                                            <span class="badge badge-secondary">{{ appointment.status.value.title() }}</span>
+                                            <span class="badge badge-secondary">{{ appointment.status.value.title() if appointment.status.value else 'N/A' }}</span>
                                         {% endif %}
                                     </td>
                                 </tr>
                                 <tr>
                                     <td><strong>Type:</strong></td>
-                                    <td>{{ appointment.appointment_type.value.replace('_', '-').title() }}</td>
+                                    <td>{{ appointment.appointment_type.value.replace('_', '-').title() if appointment.appointment_type.value else 'N/A' }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Notes:</strong></td>
-                                    <td>{{ appointment.notes or 'No notes' }}</td>
+                                    <td>{{ appointment.notes or 'N/A' }}</td>
                                 </tr>
                                 <tr>
                                     <td><strong>Created:</strong></td>
