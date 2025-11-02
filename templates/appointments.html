@@ -33,7 +33,7 @@
     
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(6, auto);
         gap: 20px;
         margin-bottom: 30px;
     }
@@ -353,6 +353,10 @@
             <h3>{{ stats.cancelled_appointments }}</h3>
             <p>Cancelled</p>
         </div>
+        <div class="stat-card no_show">
+            <h3>{{ stats.no_show_appointments }}</h3>
+            <p>No-Shows</p>
+        </div>
     </div>
     
     <!-- Controls Section -->
@@ -364,6 +368,7 @@
                 <option value="scheduled">Scheduled</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="no_show">No Show</option>
             </select>
             <select id="timeFilter" class="filter-select">
                 <option value="">All Time</option>

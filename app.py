@@ -911,6 +911,9 @@ def view_appointments():
         cancelled = len(
             [a for a in appointments if a.status == AppointmentStatusEnum.CANCELLED]
         )
+        no_show = len(
+            [a for a in appointments if a.status == AppointmentStatusEnum.NO_SHOW]
+        )
 
         stats = {
             "total_appointments": total_appointments,
@@ -918,6 +921,7 @@ def view_appointments():
             "completed_appointments": completed_appointments,
             "scheduled_appointments": scheduled,
             "cancelled_appointments": cancelled,
+            "no_show_appointments": no_show,
         }
 
         return render_template(
